@@ -1,0 +1,31 @@
+{
+  "name": "@ena/email-templates",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "clean": "rm -rf .turbo node_modules",
+    "format": "prettier --check . --ignore-path ../../.gitignore",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "dev": "email dev"
+  },
+  "dependencies": {
+    "@react-email/components": "0.0.15",
+    "react-email": "2.1.0"
+  },
+  "devDependencies": {
+    "@ena/eslint-config": "workspace:*",
+    "@ena/prettier-config": "workspace:*",
+    "@ena/tsconfig": "workspace:*",
+    "typescript": "^5.4.2"
+  },
+  "eslintConfig": {
+    "extends": [
+      "@ena/eslint-config/base",
+      "@ena/eslint-config/react"
+    ]
+  },
+  "prettier": "@ena/prettier-config"
+}
