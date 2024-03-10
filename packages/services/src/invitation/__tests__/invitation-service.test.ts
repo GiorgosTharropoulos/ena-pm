@@ -23,13 +23,8 @@ const tokenService: TokenService = {
 
 const notificationService = new InvitationNotificationInMemoryService([]);
 
-it("should create invitation", async () => {
-  const service = new InvitationService(
-    repo,
-    tokenService,
-    notificationService,
-  );
-  const invitationForCreation = {
+function getInvitationForCreation() {
+  return {
     invitee: {
       email: faker.internet.email(),
       sms: faker.phone.number(),
@@ -40,6 +35,15 @@ it("should create invitation", async () => {
       username: faker.internet.userName(),
     },
   };
+}
+
+it("should create invitation", async () => {
+  const service = new InvitationService(
+    repo,
+    tokenService,
+    notificationService,
+  );
+  const invitationForCreation = getInvitationForCreation();
   const expected = {
     createdAt: NOW_DATE,
     invitee: invitationForCreation.invitee,

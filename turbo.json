@@ -20,6 +20,8 @@
       "persistent": true,
       "cache": false
     },
+    "test": {},
+    "test:watch": {"cache": false},
     "format": {
       "outputs": ["node_modules/.cache/.prettiercache"],
       "outputMode": "new-only"

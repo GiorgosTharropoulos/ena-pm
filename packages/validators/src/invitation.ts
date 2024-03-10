@@ -1,17 +1,8 @@
 import { z } from "zod";
 
-const inviteeSchema = z
-  .object({
-    email: z.string().nullable(),
-    sms: z.string().nullable(),
-    url: z.string().nullable(),
-  })
-  .refine(
-    (val) => {
-      return !(val.email === null && val.sms === null && val.url === null);
-    },
-    { message: "At least one of email, sms, or url must be provided" },
-  );
+const inviteeSchema = z.object({
+  email: z.string().nullable(),
+});
 
 const inviterSchema = z.object({
   email: z.string().email(),

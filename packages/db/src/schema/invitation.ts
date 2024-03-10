@@ -5,9 +5,7 @@ import { pgTable } from "./_table";
 
 export const invitation = pgTable("invitation", {
   id: serial("id").primaryKey(),
-  inviteeSms: varchar("sms_invitee", { length: 255 }),
   inviteeEmail: text("email_invitee"),
-  inviteeUrl: text("url_invitee"),
   inviterEmail: text("email_inviter").notNull(),
   inviterUsername: text("username_inviter").notNull(),
   revoked: boolean("revoked").notNull(),

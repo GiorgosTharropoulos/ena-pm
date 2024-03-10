@@ -41,8 +41,6 @@ class InvitationDrizzleRepository implements InvitationRepository {
         inviterEmail: invitationIn.inviter.email,
         inviterUsername: invitationIn.inviter.username,
         inviteeEmail: invitationIn.invitee.email,
-        inviteeSms: invitationIn.invitee.sms,
-        inviteeUrl: invitationIn.invitee.url,
       })
       .returning();
 
@@ -72,8 +70,6 @@ class InvitationDrizzleRepository implements InvitationRepository {
       createdAt: dbModel.createdAt,
       invitee: {
         email: dbModel.inviteeEmail,
-        sms: dbModel.inviteeSms,
-        url: dbModel.inviteeUrl,
       },
       inviter: {
         email: dbModel.inviterEmail,
