@@ -7,6 +7,10 @@ const config = {
   ],
   rules: {
     "react/prop-types": "off",
+    "react/function-component-definition": [
+      2,
+      { namedComponents: "function-declaration" },
+    ],
   },
   globals: {
     React: "writable",
