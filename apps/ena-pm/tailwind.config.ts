@@ -19,7 +19,7 @@ const config = {
     },
     extend: {
       fontFamily: {
-        sans: ["var(--geist-sans)"],
+        sans: ["var(--font-geist-sans)"],
       },
       colors: {
         border: "hsl(var(--border))",
