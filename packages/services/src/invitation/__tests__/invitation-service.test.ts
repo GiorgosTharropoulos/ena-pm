@@ -13,7 +13,7 @@ const clock = fakeTimeProvider(NOW_DATE);
 
 const repo = new InvitationInMemoryRepository(clock);
 const tokenService: TokenService = {
-  sing(_payload: unknown): string {
+  sign(_payload: unknown): string {
     return "token";
   },
   verify(_token: string): unknown {

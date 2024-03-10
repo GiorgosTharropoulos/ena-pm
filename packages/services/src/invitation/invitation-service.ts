@@ -14,7 +14,7 @@ class InvitationService {
 
   async createInvitation(obj: InvitationForCreate): Promise<Invitation> {
     const { id } = await this.invitationRepository.create(obj);
-    const token = this.tokenService.sing({ id });
+    const token = this.tokenService.sign({ id });
     const invitation = await this.invitationRepository.setToken(id, token);
     await this.notificationService.notify(invitation);
 
