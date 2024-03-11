@@ -22,6 +22,7 @@
     },
     "test": {},
     "test:watch": {"cache": false},
+    "test:integration": {},
     "format": {
       "outputs": ["node_modules/.cache/.prettiercache"],
       "outputMode": "new-only"
