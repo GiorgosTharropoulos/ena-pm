@@ -14,7 +14,7 @@ export type SelectEmail = InferSelectModel<typeof schema.email>;
 export type InsertInvitation = InferInsertModel<typeof schema.invitation>;
 export type SelectInvitation = InferSelectModel<typeof schema.invitation>;
 
-const connectionString = process.env.DATABASE_URL!;
+const connectionString = "";
 const sql = getPgClient(connectionString);
 
 export function getDrizzle(sql: postgres.Sql) {
