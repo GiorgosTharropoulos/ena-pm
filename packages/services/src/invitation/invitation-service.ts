@@ -1,8 +1,9 @@
+import type { Result } from "neverthrow";
+import { err, ok } from "neverthrow";
+
 import type { Invitation } from "@ena/domain";
 import type { InvitationForCreate } from "@ena/validators";
-import type { Result } from "neverthrow";
 import { InvitationStatus } from "@ena/domain";
-import { err, ok } from "neverthrow";
 
 import type { SendEmailFail, SendEmailSuccess } from "../email/email-service";
 import type { InvitationNotificationService } from "../invitation-notification";
