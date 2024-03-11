@@ -18,9 +18,10 @@
   },
   "devDependencies": {
     "@ena/tsconfig": "workspace:*",
-    "typescript": "^5.4.2",
     "@types/eslint": "^8.56.3",
-    "eslint": "^8.57.0"
+    "eslint": "^8.57.0",
+    "eslint-plugin-drizzle": "^0.2.3",
+    "typescript": "^5.4.2"
   },
   "eslintConfig": {
     "root": true,
