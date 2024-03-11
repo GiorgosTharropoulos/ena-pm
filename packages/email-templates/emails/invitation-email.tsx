@@ -19,7 +19,7 @@ import {
 
 interface InvitationEmailProps {
   inviter: { email: string; username: string; image?: string };
-  email: string;
+  to: string;
   teamName: string;
   teamImage: string;
   inviteLink: string;
@@ -32,7 +32,7 @@ export function InvitationEmail({
   teamImage,
   inviteLink,
   previewText,
-  email,
+  to,
 }: InvitationEmailProps) {
   return (
     <Html>
@@ -46,7 +46,7 @@ export function InvitationEmail({
               Join <strong>{teamName}</strong> on <strong>Ena PM</strong>
             </Heading>
             <Text className="text-[14px] leading-[24px] text-black">
-              Hello {email},
+              Hello {to},
             </Text>
             <Text className="text-[14px] leading-[24px] text-black">
               <strong>{inviter.email}</strong> (
@@ -97,7 +97,7 @@ export function InvitationEmail({
             <Hr className="mx-0 my-[26px] w-full border border-solid border-[#eaeaea]" />
             <Text className="text-[12px] leading-[24px] text-[#666666]">
               This invitation was intended for{" "}
-              <span className="text-black">{email}</span>. If you were not
+              <span className="text-black">{to}</span>. If you were not
               expecting this invitation, you can ignore this email. If you are
               concerned about your account&apos;s safety, please get in touch
               with us.{" "}
