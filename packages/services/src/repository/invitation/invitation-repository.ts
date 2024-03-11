@@ -1,3 +1,6 @@
+import type { Result } from "neverthrow";
+import { err, ok } from "neverthrow";
+
 import type { DrizzleDB, InferSelectModel } from "@ena/db";
 import type { Invitation } from "@ena/domain";
 import type { InvitationForCreate } from "@ena/validators";
@@ -5,7 +8,59 @@ import { eq, schema } from "@ena/db";
 import { InvitationStatus } from "@ena/domain";
 
 import type { Clock } from "../../utils/time-provider";
-import type { InvitationRepository } from "./types";
+
+const InvitationRepositoryErrorKind = {
+  FailedToCreateInvitation: "FailedToCreateInvitation",
+  FailedToUpdateToken: "FailedToUpdateToken",
+  NotFound: "InvitationNotFound",
+} as const;
+export type InvitationRepositoryErrorKind =
+  (typeof InvitationRepositoryErrorKind)[keyof typeof InvitationRepositoryErrorKind];
+
+export const InvitationRepositoryError = {
+  [InvitationRepositoryErrorKind.FailedToCreateInvitation]: {
+    kind: InvitationRepositoryErrorKind.FailedToCreateInvitation,
+    message: "Failed to create invitation",
+  },
+  [InvitationRepositoryErrorKind.FailedToUpdateToken]: {
+    kind: InvitationRepositoryErrorKind.FailedToUpdateToken,
+    message: "Failed to update token",
+  },
+  NotFound: {
+    kind: InvitationRepositoryErrorKind.NotFound,
+    message: "Invitation not found",
+  },
+} as const;
+export type InvitationRepositoryError =
+  (typeof InvitationRepositoryError)[keyof typeof InvitationRepositoryError];
+
+export interface InvitationRepository {
+  findById(
+    id: number,
+  ): Promise<Result<Invitation, typeof InvitationRepositoryError.NotFound>>;
+  create(
+    invitationIn: InvitationForCreate,
+  ): Promise<
+    Result<
+      Invitation,
+      typeof InvitationRepositoryError.FailedToCreateInvitation
+    >
+  >;
+  setToken(
+    id: number,
+    token: string,
+  ): Promise<
+    Result<Invitation, typeof InvitationRepositoryError.FailedToUpdateToken>
+  >;
+
+  revoke(
+    id: number,
+  ): Promise<Result<undefined, typeof InvitationRepositoryError.NotFound>>;
+  setInviteeEmail(
+    id: number,
+    email: string,
+  ): Promise<Result<undefined, typeof InvitationRepositoryError.NotFound>>;
+}
 
 class InvitationDrizzleRepository implements InvitationRepository {
   constructor(
@@ -13,25 +68,58 @@ class InvitationDrizzleRepository implements InvitationRepository {
     private readonly clock: Clock,
   ) {}
 
-  async setToken(id: number, token: string): Promise<Invitation> {
+  async revoke(
+    id: number,
+  ): Promise<Result<undefined, typeof InvitationRepositoryError.NotFound>> {
+    const res = await this.db
+      .update(schema.invitation)
+      .set({
+        revoked: true,
+        updatedAt: this.clock.now(),
+        status: InvitationStatus.Revoked,
+      })
+      .where(eq(schema.invitation.id, id))
+      .returning({ id: schema.invitation.id });
+
+    if (res.length === 0) {
+      return err(InvitationRepositoryError.NotFound);
+    }
+
+    return ok(undefined);
+  }
+
+  async setToken(
+    id: number,
+    token: string,
+  ): Promise<
+    Result<Invitation, typeof InvitationRepositoryError.FailedToUpdateToken>
+  > {
     const res = await this.db
       .update(schema.invitation)
       .set({
         updatedAt: this.clock.now(),
         token,
       })
+      .where(eq(schema.invitation.id, id))
       .returning();
 
     const invitationInDb = res.at(0);
 
     if (!invitationInDb) {
-      throw new Error(`Could not set token for invitation with id ${id}`);
+      return err(InvitationRepositoryError.FailedToUpdateToken);
     }
 
-    return this.fromDb(invitationInDb);
+    return ok(this.fromDb(invitationInDb));
   }
 
-  async create(invitationIn: InvitationForCreate): Promise<Invitation> {
+  async create(
+    invitationIn: InvitationForCreate,
+  ): Promise<
+    Result<
+      Invitation,
+      typeof InvitationRepositoryError.FailedToCreateInvitation
+    >
+  > {
     const result = await this.db
       .insert(schema.invitation)
       .values({
@@ -47,19 +135,21 @@ class InvitationDrizzleRepository implements InvitationRepository {
     const invitationInDb = result.at(0);
 
     if (!invitationInDb) {
-      throw new Error("Failed to create invitation");
+      return err(InvitationRepositoryError.FailedToCreateInvitation);
     }
 
-    return this.fromDb(invitationInDb);
+    return ok(this.fromDb(invitationInDb));
   }
-  async findById(id: number): Promise<Invitation | undefined> {
+  async findById(
+    id: number,
+  ): Promise<Result<Invitation, typeof InvitationRepositoryError.NotFound>> {
     const result = await this.db.query.invitation.findFirst({
       where: eq(schema.invitation.id, id),
     });
 
-    if (!result) return undefined;
+    if (!result) return err(InvitationRepositoryError.NotFound);
 
-    return this.fromDb(result);
+    return ok(this.fromDb(result));
   }
 
   private fromDb(
@@ -81,6 +171,145 @@ class InvitationDrizzleRepository implements InvitationRepository {
       token: dbModel.token,
     };
   }
+
+  async setInviteeEmail(
+    id: number,
+    email: string,
+  ): Promise<Result<undefined, typeof InvitationRepositoryError.NotFound>> {
+    const result = await this.db
+      .update(schema.invitation)
+      .set({
+        inviteeEmail: email,
+        updatedAt: this.clock.now(),
+      })
+      .where(eq(schema.invitation.id, id))
+      .returning();
+
+    if (result.length === 0) {
+      return err(InvitationRepositoryError.NotFound);
+    }
+
+    return ok(undefined);
+  }
 }
 
-export { InvitationDrizzleRepository };
+class FakeInvitationRepository implements InvitationRepository {
+  private lastId = 0;
+  public readonly db = new Map<number, Invitation>();
+
+  constructor(private readonly clock: Clock) {}
+  revoke(
+    id: number,
+  ): Promise<Result<undefined, typeof InvitationRepositoryError.NotFound>> {
+    const invitation = this.db.get(id);
+
+    if (!invitation) {
+      return Promise.resolve(err(InvitationRepositoryError.NotFound));
+    }
+
+    const updatedInvitation = {
+      ...invitation,
+      revoked: true,
+      updatedAt: this.clock.now(),
+      status: InvitationStatus.Revoked,
+    };
+
+    this.db.set(invitation.id, updatedInvitation);
+
+    return Promise.resolve(ok(undefined));
+  }
+
+  setToken(
+    id: number,
+    token: string,
+  ): Promise<
+    Result<Invitation, typeof InvitationRepositoryError.FailedToUpdateToken>
+  > {
+    if (token === "shouldFail") {
+      return Promise.resolve(
+        err(InvitationRepositoryError.FailedToUpdateToken),
+      );
+    }
+
+    const invitation = this.db.get(id);
+
+    if (!invitation) {
+      return Promise.resolve(
+        err(InvitationRepositoryError.FailedToUpdateToken),
+      );
+    }
+
+    const updatedInvitation = {
+      ...invitation,
+      token,
+      updatedAt: this.clock.now(),
+    };
+
+    this.db.set(id, updatedInvitation);
+
+    return Promise.resolve(ok(this.db.get(id)!));
+  }
+
+  findById(
+    id: number,
+  ): Promise<Result<Invitation, typeof InvitationRepositoryError.NotFound>> {
+    if (!this.db.has(id)) {
+      return Promise.resolve(err(InvitationRepositoryError.NotFound));
+    }
+    return Promise.resolve(ok(this.db.get(id)!));
+  }
+
+  create(
+    invitationIn: InvitationForCreate,
+  ): Promise<
+    Result<
+      Invitation,
+      typeof InvitationRepositoryError.FailedToCreateInvitation
+    >
+  > {
+    if (invitationIn.inviter.email === "shouldFail@example.com") {
+      return Promise.resolve(
+        err(InvitationRepositoryError.FailedToCreateInvitation),
+      );
+    }
+
+    const invitation: Invitation = {
+      id: ++this.lastId,
+      createdAt: this.clock.now(),
+      revoked: false,
+      status: InvitationStatus.InProgress,
+      updatedAt: null,
+      token: null,
+      ...invitationIn,
+    };
+
+    this.db.set(invitation.id, invitation);
+
+    return Promise.resolve(ok(invitation));
+  }
+
+  setInviteeEmail(
+    id: number,
+    email: string,
+  ): Promise<Result<undefined, typeof InvitationRepositoryError.NotFound>> {
+    const invitation = this.db.get(id);
+
+    if (!invitation) {
+      return Promise.resolve(err(InvitationRepositoryError.NotFound));
+    }
+
+    const updatedInvitation = {
+      ...invitation,
+      invitee: {
+        email,
+      },
+      updatedAt: this.clock.now(),
+    };
+
+    this.db.set(id, updatedInvitation);
+
+    return Promise.resolve(ok(undefined));
+  }
+}
+
+export { FakeInvitationRepository, InvitationDrizzleRepository };
