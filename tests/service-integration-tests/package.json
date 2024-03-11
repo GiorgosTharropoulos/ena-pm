@@ -1,0 +1,24 @@
+{
+  "name": "@ena/service-integration-tests",
+  "scripts": {
+    "test:integration": "vitest run"
+  },
+  "dependencies": {
+    "@ena/db": "workspace:*",
+    "@ena/services": "workspace:*",
+    "@ena/domain": "workspace:*"
+  },
+  "devDependencies": {
+    "@ena/eslint-config": "workspace:*",
+    "@ena/prettier-config": "workspace:*",
+    "@ena/tsconfig": "workspace:*",
+    "@testcontainers/postgresql": "^10.7.2",
+    "vitest": "^1.3.1"
+  },
+  "eslintConfig": {
+    "extends": [
+      "@ena/eslint-config/base"
+    ]
+  },
+  "prettier": "@ena/prettier-config"
+}
