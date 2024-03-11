@@ -1,5 +1,6 @@
-import type { InvitationStatus } from "@ena/domain";
 import { boolean, serial, text, timestamp, varchar } from "drizzle-orm/pg-core";
+
+import type { InvitationStatus } from "@ena/domain";
 
 import { pgTable } from "./_table";
 
