@@ -4,7 +4,8 @@
     ".": "./src/index.ts",
     "./repository/email": "./src/repository/emails/index.ts",
     "./repository/invitation": "./src/repository/invitation/index.ts",
-    "./clock": "./src/utils/time-provider.ts"
+    "./clock": "./src/utils/time-provider.ts",
+    "./token": "./src/token-service/token-service.ts"
   },
   "dependencies": {
     "@ena/db": "workspace:*",
@@ -12,6 +13,7 @@
     "@ena/email-templates": "workspace:*",
     "@ena/validators": "workspace:*",
     "@t3-oss/env-core": "^0.9.2",
+    "jose": "^5.2.3",
     "neverthrow": "^6.1.0",
     "resend": "^3.2.0"
   },
