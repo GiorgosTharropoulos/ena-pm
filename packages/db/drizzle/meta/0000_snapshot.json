@@ -1,5 +1,5 @@
 {
-  "id": "1d27317a-a09f-4899-bf92-60bc4c1e7be8",
+  "id": "63844803-a182-4422-85d8-a20442f457d6",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "5",
   "dialect": "pg",
@@ -78,12 +78,6 @@
           "primaryKey": false,
           "notNull": true
         },
-        "revoked": {
-          "name": "revoked",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true
-        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp",
@@ -101,12 +95,6 @@
           "type": "varchar(255)",
           "primaryKey": false,
           "notNull": true
-        },
-        "token": {
-          "name": "token",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
         }
       },
       "indexes": {},

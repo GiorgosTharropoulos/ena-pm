@@ -4,6 +4,7 @@ import { err, ok } from "neverthrow";
 import type { Invitation } from "@ena/domain";
 import type { InvitationForCreate } from "@ena/validators";
 import { InvitationStatus } from "@ena/domain";
+import { invitationTokenPayloadSchema } from "@ena/validators";
 
 import type { SendEmailFail, SendEmailSuccess } from "../email/email-service";
 import type { InvitationNotificationService } from "../invitation-notification";
@@ -61,28 +62,16 @@ class InvitationService {
       return err(createResult.error);
     }
 
-    const token = await this.tokenService.sign({ id: createResult.value.id });
-    const setTokenResult = await this.invitationRepository.setToken(
-      createResult.value.id,
-      token,
-    );
-
-    if (setTokenResult.isErr()) {
-      return err(setTokenResult.error);
-    }
-
     if (!obj.invitee.email) {
-      return ok({ invitation: setTokenResult.value });
+      return ok({ invitation: createResult.value });
     }
 
-    const invitationUrl = this.getInvitationUrl(token);
-    const notificationResult = await this.notificationService.notify({
-      callbackUrl: invitationUrl,
-      inviter: obj.inviter,
+    const notificationResult = await this.invite({
+      invitation: createResult.value,
       to: obj.invitee.email,
     });
 
-    return ok({ invitation: setTokenResult.value, notificationResult });
+    return ok({ invitation: createResult.value, notificationResult });
   }
 
   async revoke(
@@ -103,7 +92,7 @@ class InvitationService {
 
     const invitation = invitationResult.value;
 
-    if (invitation.revoked) {
+    if (invitation.isRevoked) {
       return err(InvitationServiceError.InvitationAlreadyRevoked);
     }
 
@@ -120,7 +109,6 @@ class InvitationService {
     Result<
       SendEmailSuccess,
       | typeof InvitationRepositoryError.NotFound
-      | typeof InvitationRepositoryError.FailedToUpdateToken
       | typeof InvitationServiceError.NotInProgress
       | typeof InvitationServiceError.InviteeHasNoEmail
       | SendEmailFail
@@ -141,25 +129,7 @@ class InvitationService {
       return err(InvitationServiceError.InviteeHasNoEmail);
     }
 
-    const to = invitation.invitee.email;
-    const token = await this.tokenService.sign({ id: invitation.id });
-    const setTokenResult = await this.invitationRepository.setToken(
-      invitation.id,
-      token,
-    );
-
-    if (setTokenResult.isErr()) {
-      return err(setTokenResult.error);
-    }
-
-    const callbackUrl = this.getInvitationUrl(token);
-    const notificationResult = await this.notificationService.notify({
-      callbackUrl,
-      inviter: invitation.inviter,
-      to,
-    });
-
-    return notificationResult;
+    return this.invite({ invitation, to: invitation.invitee.email });
   }
 
   async setInviteeEmail(
@@ -188,6 +158,40 @@ class InvitationService {
     );
 
     return ok(undefined);
+  }
+
+  async getInvitationFromToken(token: string) {
+    const result = await this.tokenService.verify(token);
+
+    if (result.isErr()) {
+      return err(result.error);
+    }
+
+    const payload = invitationTokenPayloadSchema.safeParse(result.value);
+
+    if (!payload.success) {
+      return err("Invalid token payload");
+    }
+
+    return this.invitationRepository.findById(payload.data.id);
+  }
+
+  private async invite({
+    invitation,
+    to,
+  }: {
+    invitation: Pick<Invitation, "id" | "inviter">;
+    to: string;
+  }) {
+    const { id, inviter } = invitation;
+
+    const token = await this.tokenService.sign({ id });
+    const callbackUrl = this.getInvitationUrl(token);
+    return await this.notificationService.notify({
+      callbackUrl,
+      inviter,
+      to,
+    });
   }
 }
 

@@ -2,16 +2,14 @@ import type { Result } from "neverthrow";
 import { err, ok } from "neverthrow";
 
 import type { DrizzleDB, InferSelectModel } from "@ena/db";
-import type { Invitation } from "@ena/domain";
 import type { InvitationForCreate } from "@ena/validators";
 import { eq, schema } from "@ena/db";
-import { InvitationStatus } from "@ena/domain";
+import { Invitation, InvitationStatus } from "@ena/domain";
 
 import type { Clock } from "../../utils/time-provider";
 
 const InvitationRepositoryErrorKind = {
   FailedToCreateInvitation: "FailedToCreateInvitation",
-  FailedToUpdateToken: "FailedToUpdateToken",
   NotFound: "InvitationNotFound",
 } as const;
 export type InvitationRepositoryErrorKind =
@@ -21,10 +19,6 @@ export const InvitationRepositoryError = {
   [InvitationRepositoryErrorKind.FailedToCreateInvitation]: {
     kind: InvitationRepositoryErrorKind.FailedToCreateInvitation,
     message: "Failed to create invitation",
-  },
-  [InvitationRepositoryErrorKind.FailedToUpdateToken]: {
-    kind: InvitationRepositoryErrorKind.FailedToUpdateToken,
-    message: "Failed to update token",
   },
   NotFound: {
     kind: InvitationRepositoryErrorKind.NotFound,
@@ -46,13 +40,6 @@ export interface InvitationRepository {
       typeof InvitationRepositoryError.FailedToCreateInvitation
     >
   >;
-  setToken(
-    id: number,
-    token: string,
-  ): Promise<
-    Result<Invitation, typeof InvitationRepositoryError.FailedToUpdateToken>
-  >;
-
   revoke(
     id: number,
   ): Promise<Result<undefined, typeof InvitationRepositoryError.NotFound>>;
@@ -74,7 +61,6 @@ class InvitationDrizzleRepository implements InvitationRepository {
     const res = await this.db
       .update(schema.invitation)
       .set({
-        revoked: true,
         updatedAt: this.clock.now(),
         status: InvitationStatus.Revoked,
       })
@@ -88,30 +74,6 @@ class InvitationDrizzleRepository implements InvitationRepository {
     return ok(undefined);
   }
 
-  async setToken(
-    id: number,
-    token: string,
-  ): Promise<
-    Result<Invitation, typeof InvitationRepositoryError.FailedToUpdateToken>
-  > {
-    const res = await this.db
-      .update(schema.invitation)
-      .set({
-        updatedAt: this.clock.now(),
-        token,
-      })
-      .where(eq(schema.invitation.id, id))
-      .returning();
-
-    const invitationInDb = res.at(0);
-
-    if (!invitationInDb) {
-      return err(InvitationRepositoryError.FailedToUpdateToken);
-    }
-
-    return ok(this.fromDb(invitationInDb));
-  }
-
   async create(
     invitationIn: InvitationForCreate,
   ): Promise<
@@ -123,7 +85,6 @@ class InvitationDrizzleRepository implements InvitationRepository {
     const result = await this.db
       .insert(schema.invitation)
       .values({
-        revoked: false,
         status: InvitationStatus.InProgress,
         createdAt: this.clock.now(),
         inviterEmail: invitationIn.inviter.email,
@@ -155,7 +116,7 @@ class InvitationDrizzleRepository implements InvitationRepository {
   private fromDb(
     dbModel: InferSelectModel<typeof schema.invitation>,
   ): Invitation {
-    return {
+    return Invitation.from({
       id: dbModel.id,
       createdAt: dbModel.createdAt,
       invitee: {
@@ -165,11 +126,9 @@ class InvitationDrizzleRepository implements InvitationRepository {
         email: dbModel.inviterEmail,
         username: dbModel.inviterUsername,
       },
-      revoked: dbModel.revoked,
       status: dbModel.status,
       updatedAt: dbModel.updatedAt,
-      token: dbModel.token,
-    };
+    });
   }
 
   async setInviteeEmail(
@@ -207,47 +166,15 @@ class FakeInvitationRepository implements InvitationRepository {
       return Promise.resolve(err(InvitationRepositoryError.NotFound));
     }
 
-    const updatedInvitation = {
+    const updatedInvitation = Invitation.from({
       ...invitation,
-      revoked: true,
       updatedAt: this.clock.now(),
       status: InvitationStatus.Revoked,
-    };
+    });
 
     this.db.set(invitation.id, updatedInvitation);
 
     return Promise.resolve(ok(undefined));
-  }
-
-  setToken(
-    id: number,
-    token: string,
-  ): Promise<
-    Result<Invitation, typeof InvitationRepositoryError.FailedToUpdateToken>
-  > {
-    if (token === "shouldFail") {
-      return Promise.resolve(
-        err(InvitationRepositoryError.FailedToUpdateToken),
-      );
-    }
-
-    const invitation = this.db.get(id);
-
-    if (!invitation) {
-      return Promise.resolve(
-        err(InvitationRepositoryError.FailedToUpdateToken),
-      );
-    }
-
-    const updatedInvitation = {
-      ...invitation,
-      token,
-      updatedAt: this.clock.now(),
-    };
-
-    this.db.set(id, updatedInvitation);
-
-    return Promise.resolve(ok(this.db.get(id)!));
   }
 
   findById(
@@ -273,15 +200,13 @@ class FakeInvitationRepository implements InvitationRepository {
       );
     }
 
-    const invitation: Invitation = {
+    const invitation = Invitation.from({
       id: ++this.lastId,
       createdAt: this.clock.now(),
-      revoked: false,
       status: InvitationStatus.InProgress,
       updatedAt: null,
-      token: null,
       ...invitationIn,
-    };
+    });
 
     this.db.set(invitation.id, invitation);
 
@@ -298,13 +223,13 @@ class FakeInvitationRepository implements InvitationRepository {
       return Promise.resolve(err(InvitationRepositoryError.NotFound));
     }
 
-    const updatedInvitation = {
+    const updatedInvitation = Invitation.from({
       ...invitation,
       invitee: {
         email,
       },
       updatedAt: this.clock.now(),
-    };
+    });
 
     this.db.set(id, updatedInvitation);
 

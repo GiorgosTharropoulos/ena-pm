@@ -1,4 +1,4 @@
-import { boolean, serial, text, timestamp, varchar } from "drizzle-orm/pg-core";
+import { serial, text, timestamp, varchar } from "drizzle-orm/pg-core";
 
 import type { InvitationStatus } from "@ena/domain";
 
@@ -9,11 +9,9 @@ export const invitation = pgTable("invitation", {
   inviteeEmail: text("email_invitee"),
   inviterEmail: text("email_inviter").notNull(),
   inviterUsername: text("username_inviter").notNull(),
-  revoked: boolean("revoked").notNull(),
   createdAt: timestamp("created_at").notNull(),
   updatedAt: timestamp("updated_at"),
   status: varchar("status", { length: 255 })
     .$type<InvitationStatus>()
     .notNull(),
-  token: text("token"),
 });

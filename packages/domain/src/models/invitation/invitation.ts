@@ -1,15 +1,14 @@
 import type { Root } from "../../root";
-import type { InvitationStatus, Invitee, Inviter } from "./value-objects";
+import type { Invitee, Inviter } from "./value-objects";
+import { InvitationStatus } from "./value-objects";
 
 interface InviteFactoryArgs {
   id: number;
   invitee: Invitee;
   inviter: Inviter;
   createdAt: Date;
-  updatedAt: Date;
-  revoked: boolean;
+  updatedAt: Date | null;
   status: InvitationStatus;
-  token: string | null;
 }
 
 class Invitation implements Root {
@@ -19,32 +18,16 @@ class Invitation implements Root {
     public readonly inviter: Inviter,
     public readonly createdAt: Date,
     public readonly updatedAt: Date | null,
-    public readonly revoked: boolean,
     public readonly status: InvitationStatus,
-    public readonly token: string | null,
   ) {}
 
   static from(options: InviteFactoryArgs): Invitation {
-    const {
-      id,
-      invitee,
-      inviter,
-      createdAt,
-      updatedAt,
-      revoked,
-      status,
-      token,
-    } = options;
-    return new Invitation(
-      id,
-      invitee,
-      inviter,
-      createdAt,
-      updatedAt,
-      revoked,
-      status,
-      token,
-    );
+    const { id, invitee, inviter, createdAt, updatedAt, status } = options;
+    return new Invitation(id, invitee, inviter, createdAt, updatedAt, status);
+  }
+
+  get isRevoked(): boolean {
+    return this.status === InvitationStatus.Revoked;
   }
 }
 

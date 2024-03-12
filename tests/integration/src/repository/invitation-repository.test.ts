@@ -3,10 +3,9 @@ import { PostgreSqlContainer } from "@testcontainers/postgresql";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import type { DrizzleDB, SelectInvitation } from "@ena/db";
-import type { Invitation } from "@ena/domain";
 import { eq, getDrizzle, schema } from "@ena/db";
 import { getPgClient } from "@ena/db/utils";
-import { InvitationStatus } from "@ena/domain";
+import { Invitation, InvitationStatus } from "@ena/domain";
 import { err } from "@ena/services";
 import { fakeTimeProvider } from "@ena/services/clock";
 import {
@@ -55,69 +54,10 @@ describe("InvitationRepository", () => {
         inviteeEmail: "to@example.com",
         inviterEmail: "from@example.com",
         inviterUsername: "from",
-        revoked: false,
         updatedAt: null,
         status: InvitationStatus.InProgress,
-        token: null,
       },
     ]);
-  });
-
-  describe("when setting a token to an invitation", () => {
-    it("should return a not found error when the invitation does not exist", async () => {
-      const now = new Date();
-      const repository = new InvitationDrizzleRepository(
-        db,
-        fakeTimeProvider(now),
-      );
-
-      const actual = await repository.setToken(999999, "token");
-
-      expect(actual).toEqual(
-        err(InvitationRepositoryError.FailedToUpdateToken),
-      );
-    });
-
-    it("should set the token if the invitation exists", async () => {
-      const now = new Date();
-      now.setMilliseconds(0);
-
-      const [inserted] = await db
-        .insert(schema.invitation)
-        .values({
-          createdAt: now,
-          inviterEmail: "from@example.com",
-          inviterUsername: "from",
-          inviteeEmail: "to@example.com",
-          revoked: false,
-          status: InvitationStatus.InProgress,
-          token: null,
-        })
-        .returning({ id: schema.invitation.id });
-
-      const { id } = inserted ?? {};
-
-      const tomorrow = new Date(now);
-      tomorrow.setDate(tomorrow.getDate() + 1);
-
-      const repository = new InvitationDrizzleRepository(
-        db,
-        fakeTimeProvider(tomorrow),
-      );
-
-      await repository.setToken(id!, "token");
-
-      const retrieved = await db.query.invitation.findFirst({
-        where: eq(schema.invitation.id, id!),
-      });
-
-      expect(retrieved).toBeDefined();
-      expect(retrieved).toMatchObject<Partial<SelectInvitation>>({
-        updatedAt: tomorrow,
-        id: id!,
-        token: "token",
-      });
-    });
   });
 
   it("should be able to retrieve a created invitation", async () => {
@@ -140,7 +80,6 @@ describe("InvitationRepository", () => {
         inviterEmail: expected.inviter.email,
         inviterUsername: expected.inviter.username,
         inviteeEmail: expected.invitee.email,
-        revoked: expected.revoked,
         status: expected.status,
       })
       .returning({ id: schema.invitation.id });
@@ -155,16 +94,16 @@ describe("InvitationRepository", () => {
     const retrieved = await repository.findById(id!);
 
     expect(retrieved.isOk()).toBe(true);
-    expect(retrieved._unsafeUnwrap()).toEqual<Invitation>({
-      createdAt: expected.createdAt,
-      id: id!,
-      invitee: expected.invitee,
-      inviter: expected.inviter,
-      revoked: expected.revoked,
-      status: expected.status,
-      updatedAt: null,
-      token: null,
-    });
+    expect(retrieved._unsafeUnwrap()).toEqual(
+      Invitation.from({
+        createdAt: expected.createdAt,
+        id: id!,
+        invitee: expected.invitee,
+        inviter: expected.inviter,
+        status: expected.status,
+        updatedAt: null,
+      }),
+    );
   });
 
   describe("when revoking an invitation", () => {
@@ -177,7 +116,6 @@ describe("InvitationRepository", () => {
         inviterEmail: "from@example.com",
         inviterUsername: "from",
         inviteeEmail: "to@example.com",
-        revoked: false,
         status: InvitationStatus.InProgress,
       };
       const [inserted] = await db
@@ -206,9 +144,7 @@ describe("InvitationRepository", () => {
         id: id!,
         ...objIn,
         updatedAt: tomorrow,
-        revoked: true,
         status: InvitationStatus.Revoked,
-        token: null,
       });
     });
 

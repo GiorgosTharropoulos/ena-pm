@@ -2,8 +2,7 @@ import { render } from "@react-email/render";
 import { ok } from "neverthrow";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { Invitation } from "@ena/domain";
-import { InvitationStatus } from "@ena/domain";
+import { Invitation, InvitationStatus } from "@ena/domain";
 
 import type { SendEmailOptions } from "../../email/email-service";
 import { FakeEmailService } from "../../email/email-service";
@@ -29,16 +28,14 @@ describe("InvitationNotifier", () => {
 
     const to = "to@example.com";
     const callbackUrl = "https://example.com";
-    const invitation: Invitation = {
+    const invitation = Invitation.from({
       createdAt: new Date(),
       id: 1,
       invitee: { email: to },
       inviter: { email: "sender@example.com", username: "sender" },
-      revoked: false,
       status: InvitationStatus.InProgress,
-      token: "token",
       updatedAt: new Date(),
-    };
+    });
 
     const actual = await invitationNotifier.notify({
       callbackUrl,
