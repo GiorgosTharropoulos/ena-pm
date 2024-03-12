@@ -73,7 +73,7 @@ describe("InvitationService", () => {
 
   it("should return the set token error if it fails to set the token", async () => {
     // Arrange
-    vi.spyOn(tokenService, "sign").mockReturnValueOnce("shouldFail");
+    vi.spyOn(tokenService, "sign").mockResolvedValueOnce("shouldFail");
     const notifySpy = vi.spyOn(notificationService, "notify");
 
     const invitationForCreate: InvitationForCreate = {
@@ -314,7 +314,7 @@ describe("InvitationService", () => {
     });
     it("should error if setting the token fails", async () => {
       // Arrange
-      vi.spyOn(tokenService, "sign").mockReturnValueOnce("shouldFail");
+      vi.spyOn(tokenService, "sign").mockResolvedValueOnce("shouldFail");
 
       invitationRepository.db.set(1, {
         createdAt: DATE_NOW,

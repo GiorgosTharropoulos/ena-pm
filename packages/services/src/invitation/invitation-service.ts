@@ -61,7 +61,7 @@ class InvitationService {
       return err(createResult.error);
     }
 
-    const token = this.tokenService.sign({ id: createResult.value.id });
+    const token = await this.tokenService.sign({ id: createResult.value.id });
     const setTokenResult = await this.invitationRepository.setToken(
       createResult.value.id,
       token,
@@ -142,7 +142,7 @@ class InvitationService {
     }
 
     const to = invitation.invitee.email;
-    const token = this.tokenService.sign({ id: invitation.id });
+    const token = await this.tokenService.sign({ id: invitation.id });
     const setTokenResult = await this.invitationRepository.setToken(
       invitation.id,
       token,

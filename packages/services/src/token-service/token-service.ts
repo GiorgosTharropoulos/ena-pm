@@ -1,14 +1,14 @@
 export interface TokenService {
-  sign(payload: unknown): string;
-  verify(token: string): unknown;
+  sign(payload: unknown): Promise<string>;
+  verify<T>(token: string): Promise<T>;
 }
 
 export class FakeTokenService implements TokenService {
-  sign(payload: unknown): string {
-    return JSON.stringify(payload);
+  sign(payload: unknown): Promise<string> {
+    return Promise.resolve(JSON.stringify(payload));
   }
 
-  verify(token: string): unknown {
-    return JSON.parse(token);
+  verify<T>(token: string): Promise<T> {
+    return Promise.resolve(JSON.parse(token) as T);
   }
 }
