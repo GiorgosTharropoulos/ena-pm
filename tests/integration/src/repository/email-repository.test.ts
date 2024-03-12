@@ -18,11 +18,11 @@ describe("EmailRepository", () => {
     container = await new PostgreSqlContainer().start();
     await migrateDB(container);
     db = getDrizzle(getPgClient(container.getConnectionUri()));
-  });
+  }, 60_000);
 
   afterAll(async () => {
     await container.stop();
-  });
+  }, 60_000);
 
   it("should insert an email", async () => {
     const now = new Date();

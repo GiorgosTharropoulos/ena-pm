@@ -23,11 +23,11 @@ describe("InvitationRepository", () => {
     container = await new PostgreSqlContainer().start();
     await migrateDB(container);
     db = getDrizzle(getPgClient(container.getConnectionUri()));
-  });
+  }, 60_000);
 
   afterAll(async () => {
     await container.stop();
-  });
+  }, 60_000);
 
   it("should create an invitation", async () => {
     const now = new Date();
