@@ -62,3 +62,14 @@ jobs:
 
       - name: Test
         run: pnpm test
+
+  integration:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup
+        uses: ./tooling/github/setup
+
+      - name: Integration
+        run: pnpm test:integration
