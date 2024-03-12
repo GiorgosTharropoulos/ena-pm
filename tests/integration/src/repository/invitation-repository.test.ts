@@ -14,7 +14,7 @@ import {
   InvitationRepositoryError,
 } from "@ena/services/repository/invitation";
 
-import { migrateDB } from "./utils";
+import { migrateDB } from "../utils";
 
 describe("InvitationRepository", () => {
   let container: StartedPostgreSqlContainer;

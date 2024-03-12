@@ -8,7 +8,7 @@ import { getPgClient } from "@ena/db/utils";
 import { fakeTimeProvider } from "@ena/services/clock";
 import { DrizzleEmailRepository } from "@ena/services/repository/email";
 
-import { migrateDB } from "./utils";
+import { migrateDB } from "../utils";
 
 describe("EmailRepository", () => {
   let container: StartedPostgreSqlContainer;

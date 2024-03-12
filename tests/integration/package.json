@@ -1,5 +1,5 @@
 {
-  "name": "@ena/service-integration-tests",
+  "name": "@ena/integration",
   "scripts": {
     "test:integration": "vitest run"
   },
