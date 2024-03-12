@@ -1,13 +1,14 @@
-import { fileURLToPath } from "node:url";
-import type { DrizzleDB } from "@ena/db";
 import type { StartedPostgreSqlContainer } from "@testcontainers/postgresql";
+import { PostgreSqlContainer } from "@testcontainers/postgresql";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
+
+import type { DrizzleDB } from "@ena/db";
 import { getDrizzle, schema } from "@ena/db";
-import { getMigrationClient, getPgClient } from "@ena/db/utils";
+import { getPgClient } from "@ena/db/utils";
 import { fakeTimeProvider } from "@ena/services/clock";
 import { DrizzleEmailRepository } from "@ena/services/repository/email";
-import { PostgreSqlContainer } from "@testcontainers/postgresql";
-import { migrate } from "drizzle-orm/postgres-js/migrator";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+
+import { migrateDB } from "./utils";
 
 describe("EmailRepository", () => {
   let container: StartedPostgreSqlContainer;
@@ -15,13 +16,7 @@ describe("EmailRepository", () => {
 
   beforeAll(async () => {
     container = await new PostgreSqlContainer().start();
-    const sql = getMigrationClient(container.getConnectionUri());
-    const migrationDb = getDrizzle(sql);
-    const migrationsFolder = fileURLToPath(
-      new URL("../../../packages/db/drizzle", import.meta.url),
-    );
-    await migrate(migrationDb, { migrationsFolder });
-    await sql.end();
+    await migrateDB(container);
     db = getDrizzle(getPgClient(container.getConnectionUri()));
   });
 
