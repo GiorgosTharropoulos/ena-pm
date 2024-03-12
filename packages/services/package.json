@@ -32,8 +32,9 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "with-env": "dotenv -e ../../.env --",
-    "test": "pnpm with-env vitest run",
-    "test:watch": "pnpm with-env vitest"
+    "with-test-env": "dotenv -e ../../.env.test --",
+    "test": "pnpm with-test-env vitest run",
+    "test:watch": "pnpm with-test-env vitest"
   },
   "eslintConfig": {
     "extends": [
