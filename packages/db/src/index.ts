@@ -1,18 +1,23 @@
-import type { InferInsertModel, InferSelectModel } from "drizzle-orm";
+import type { Table } from "drizzle-orm";
+import type { PgUpdateSetSource } from "drizzle-orm/pg-core";
 import type postgres from "postgres";
 import { drizzle } from "drizzle-orm/postgres-js";
 
-import * as email from "./schema/email";
-import * as invitation from "./schema/invitation";
+import * as _schema from "./schema/schema";
 import { getPgClient } from "./utils";
 
-export const schema = { ...invitation, ...email };
-export * from "drizzle-orm";
+export const schema = { ..._schema };
+export type Schema = typeof schema;
+export type SchemaTables = {
+  [K in keyof Schema as Schema[K] extends Table ? K : never]: Schema[K];
+};
+export type SchemaTable = SchemaTables[keyof SchemaTables];
+export type { PgUpdateSetSource };
 
-export type InsertEmail = InferInsertModel<typeof schema.email>;
-export type SelectEmail = InferSelectModel<typeof schema.email>;
-export type InsertInvitation = InferInsertModel<typeof schema.invitation>;
-export type SelectInvitation = InferSelectModel<typeof schema.invitation>;
+export * from "drizzle-orm";
+export * from "drizzle-orm/postgres-js";
+export * from "drizzle-zod";
+export { PostgresError } from "postgres";
 
 const connectionString = "";
 const sql = getPgClient(connectionString);

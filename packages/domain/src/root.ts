@@ -1,3 +1,4 @@
 export interface Root {
-  id: number;
+  key: number;
+  ref: string;
 }

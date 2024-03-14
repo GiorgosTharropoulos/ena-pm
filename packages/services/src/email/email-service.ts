@@ -2,9 +2,7 @@ import type { Result } from "neverthrow";
 import type { Resend } from "resend";
 import { err, ok } from "neverthrow";
 
-import type { SelectEmail } from "@ena/db";
-
-import type { EmailRepository } from "../repository/emails";
+import type { EmailSelectSchema } from "@ena/validators";
 
 /**
  * Options for sending an email.
@@ -68,7 +66,7 @@ export const EmailServiceError = {
   } as const,
 } as const;
 
-export type SendEmailSuccess = Pick<SelectEmail, "id" | "externalId">;
+export type SendEmailSuccess = Pick<EmailSelectSchema, "externalId">;
 export type SendEmailFail =
   | typeof EmailServiceError.EmailSentButNotSaved
   | ReturnType<typeof EmailServiceError.EmailNotSend>
@@ -81,10 +79,7 @@ export interface EmailService {
 }
 
 export class ResendEmailService implements EmailService {
-  constructor(
-    private readonly resend: Resend,
-    private readonly emailRepository: EmailRepository,
-  ) {}
+  constructor(private readonly resend: Resend) {}
 
   async send(
     options: SendEmailOptions,
@@ -93,20 +88,7 @@ export class ResendEmailService implements EmailService {
 
     if (error) return err(EmailServiceError.EmailNotSend(error.message));
     if (!data) return err(EmailServiceError.EmailSendButNoDataReturned);
-
-    const saveEmailResult = await this.emailRepository.save({
-      externalId: data.id,
-      to: Array.isArray(options.to) ? options.to.join(",") : options.to,
-      from: options.from,
-      sender: options.sender,
-    });
-
-    return saveEmailResult
-      .map((email) => ({
-        id: email.id,
-        externalId: email.externalId,
-      }))
-      .mapErr(() => EmailServiceError.EmailSentButNotSaved);
+    return ok({ externalId: data.id });
   }
 }
 

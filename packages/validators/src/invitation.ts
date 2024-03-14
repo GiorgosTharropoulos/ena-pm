@@ -1,20 +1,36 @@
 import { z } from "zod";
 
-const inviteeSchema = z.object({
-  email: z.string().nullable(),
+import { InvitationStatus } from "@ena/domain";
+
+const invitationSelectSchema = z.object({
+  key: z.number(),
+  ref: z.string(),
+  createdAt: z.date(),
+  updatedAt: z.date().nullable(),
+  to: z.string().email(),
+  status: z.nativeEnum(InvitationStatus),
+  teamKey: z.number(),
+  inviterKey: z.number(),
 });
 
-const inviterSchema = z.object({
-  email: z.string().email(),
-  username: z.string(),
+const invitationInsertSchema = z.object({
+  to: z.string().max(255).email(),
+  teamKey: z.number(),
+  inviterKey: z.number(),
+  status: z.nativeEnum(InvitationStatus),
 });
 
-const invitationForCreateSchema = z.object({
-  invitee: inviteeSchema,
-  inviter: inviterSchema,
+const invitationUpdateSchema = z.object({
+  status: z.nativeEnum(InvitationStatus),
 });
 
-type InvitationForCreate = z.infer<typeof invitationForCreateSchema>;
+type InvitationForCreate = z.infer<typeof invitationInsertSchema>;
+type InvitationForUpdate = z.infer<typeof invitationUpdateSchema>;
+type InvitationForSelect = z.infer<typeof invitationSelectSchema>;
 
-export { invitationForCreateSchema, inviteeSchema, inviterSchema };
-export type { InvitationForCreate };
+export {
+  invitationSelectSchema,
+  invitationInsertSchema,
+  invitationUpdateSchema,
+};
+export type { InvitationForCreate, InvitationForUpdate, InvitationForSelect };

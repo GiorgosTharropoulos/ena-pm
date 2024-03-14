@@ -1,359 +1,286 @@
-import { err, ok } from "neverthrow";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-
-import type { InvitationForCreate } from "@ena/validators";
-import { Invitation, InvitationStatus } from "@ena/domain";
+import { err } from "neverthrow";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { FakeInvitationNotificationService } from "../../invitation-notification";
 import {
-  FakeInvitationRepository,
-  InvitationRepositoryError,
-} from "../../repository/invitation";
+  FakeEmailRepository,
+  FakeTeamRepository,
+  FakeUserRepository,
+} from "../../repository/fakes";
 import { FakeTokenService } from "../../token-service";
-import { fakeTimeProvider } from "../../utils/time-provider";
-import {
-  InvitationService,
-  InvitationServiceError,
-} from "../invitation-service";
-
-const DATE_NOW = new Date("2021-01-01T00:00:00Z");
-const getInvitationUrl = vi.fn(
-  (token: string) => `http://example.com/invite/${token}`,
-);
+import { FakeUnitOfWork } from "../../unit-of-work/fake-unit-of-work";
+import { InvitationService } from "../invitation-service";
 
 afterEach(() => {
   vi.restoreAllMocks();
 });
 
-describe("InvitationService", () => {
-  let invitationService: InvitationService;
-  let invitationRepository: FakeInvitationRepository;
-  let tokenService: FakeTokenService;
-  let notificationService: FakeInvitationNotificationService;
+describe("when inviting a user", () => {
+  it("should error when the team does not exist", async () => {
+    const uow = new FakeUnitOfWork();
+    const notificationService = new FakeInvitationNotificationService();
+    const tokenService = new FakeTokenService();
 
-  beforeEach(() => {
-    tokenService = new FakeTokenService();
-    invitationRepository = new FakeInvitationRepository(
-      fakeTimeProvider(DATE_NOW),
-    );
-    notificationService = new FakeInvitationNotificationService();
-    invitationService = new InvitationService(
-      invitationRepository,
-      tokenService,
+    const service = new InvitationService(
+      uow,
       notificationService,
-      getInvitationUrl,
+      tokenService,
     );
+
+    const result = await service.invite({
+      teamRef: "team-ref",
+      inviterRef: "inviter-ref",
+      to: "to",
+    });
+
+    expect(result).toEqual(err("Team not found"));
   });
 
-  describe("when creating an invite", () => {
-    it("should return the create invitation error if it fails to create the invitation", async () => {
-      // Arrange
-      const notifySpy = vi.spyOn(notificationService, "notify");
-      const invitationForCreate: InvitationForCreate = {
-        invitee: { email: "to@example.com" },
-        inviter: {
-          email: "shouldFail@example.com",
-          username: "from",
-        },
-      };
-
-      // Act
-      const result = await invitationService.create(invitationForCreate);
-
-      // Assert
-      expect(result).toEqual(
-        err(InvitationRepositoryError.FailedToCreateInvitation),
-      );
-      expect(invitationRepository.db.size).toEqual(0);
-      expect(getInvitationUrl).not.toHaveBeenCalled();
-      expect(notifySpy).not.toHaveBeenCalled();
+  it("should error when the inviter does not exist", async () => {
+    const team = {
+      ref: "team-ref",
+      createdAt: new Date(),
+      description: "description",
+      key: 1,
+      organizationKey: 1,
+      title: "title",
+    };
+    const uow = new FakeUnitOfWork({
+      team: new FakeTeamRepository([team]),
     });
-    it("should return just the invitation if the invitee has no email", async () => {
-      // Arrange
-      const notifySpy = vi.spyOn(notificationService, "notify");
-      const invitationForCreate: InvitationForCreate = {
-        invitee: { email: null },
-        inviter: {
-          email: "from@example.com",
-          username: "from",
-        },
-      };
-      const invitation = Invitation.from({
-        createdAt: DATE_NOW,
-        id: 1,
-        status: InvitationStatus.InProgress,
-        updatedAt: null,
-        ...invitationForCreate,
-      });
+    const notificationService = new FakeInvitationNotificationService();
+    const tokenService = new FakeTokenService();
 
-      // Act
-      const result = await invitationService.create(invitationForCreate);
+    const service = new InvitationService(
+      uow,
+      notificationService,
+      tokenService,
+    );
 
-      // Assert
-      expect(result).toEqual(ok({ invitation }));
-      expect(getInvitationUrl).not.toHaveBeenCalled();
-      expect(notifySpy).not.toHaveBeenCalled();
+    const result = await service.invite({
+      teamRef: team.ref,
+      inviterRef: "inviter-ref",
+      to: "to",
     });
-    it("should create the invitation and notify the invitee has an email", async () => {
-      // Arrange
-      const invitationForCreate: InvitationForCreate = {
-        invitee: { email: "to@example.com" },
-        inviter: {
-          email: "from@example.com",
-          username: "from",
-        },
-      };
-      const invitation = Invitation.from({
-        createdAt: DATE_NOW,
-        id: 1,
-        status: InvitationStatus.InProgress,
-        updatedAt: null,
-        ...invitationForCreate,
-      });
-      const notificationResult = ok({
-        externalId: `fake-external-id-1`,
-        id: 1,
-      });
 
-      // Act
-      const result = await invitationService.create(invitationForCreate);
-
-      // Assert
-      expect(result).toEqual(ok({ invitation, notificationResult }));
-    });
+    expect(result).toEqual(err("Inviter not found"));
   });
 
-  describe("when revoking an invitation", () => {
-    it("should error if the invitation does not exist", async () => {
-      const result = await invitationService.revoke(1);
+  it("should return an error when the notification service fails", async () => {
+    const team = {
+      ref: "team-ref",
+      createdAt: new Date(),
+      description: "description",
+      key: 1,
+      organizationKey: 1,
+      title: "title",
+    };
+    const user = {
+      email: "from@example.com",
+      key: 1,
+      ref: "user-ref",
+    };
+    const uow = new FakeUnitOfWork({
+      team: new FakeTeamRepository([team]),
+      user: new FakeUserRepository([user]),
+    });
+    const notificationService = new FakeInvitationNotificationService();
+    const tokenService = new FakeTokenService();
+    vi.spyOn(notificationService, "notify").mockResolvedValueOnce(
+      err({
+        kind: "EMAIL_NOT_SEND",
+        message: "Failed to send email",
+      }),
+    );
 
-      expect(result).toEqual(err(InvitationRepositoryError.NotFound));
+    const service = new InvitationService(
+      uow,
+      notificationService,
+      tokenService,
+    );
+
+    const result = await service.invite({
+      teamRef: team.ref,
+      inviterRef: user.ref,
+      to: "to",
     });
 
-    it("should error if the invitation is already revoked", async () => {
-      // Arrange
-      invitationRepository.db.set(
-        1,
-        Invitation.from({
-          createdAt: DATE_NOW,
-          id: 1,
-          status: InvitationStatus.Revoked,
-          updatedAt: DATE_NOW,
-          invitee: { email: "to@example.com" },
-          inviter: { email: "from@example.com", username: "from" },
-        }),
-      );
-
-      // Act
-      const result = await invitationService.revoke(1);
-
-      // Assert
-      expect(result).toEqual(
-        err(InvitationServiceError.InvitationAlreadyRevoked),
-      );
-    });
-
-    it("should error if the invitation is not in progress", async () => {
-      // Arrange
-      invitationRepository.db.set(
-        1,
-        Invitation.from({
-          createdAt: DATE_NOW,
-          id: 1,
-          status: InvitationStatus.Accepted,
-          updatedAt: DATE_NOW,
-          invitee: { email: "to@example.com" },
-          inviter: { email: "from@example.com", username: "from" },
-        }),
-      );
-      invitationRepository.db.set(
-        2,
-        Invitation.from({
-          createdAt: DATE_NOW,
-          id: 2,
-          status: InvitationStatus.Expired,
-          updatedAt: DATE_NOW,
-          invitee: { email: "to@example.com" },
-          inviter: { email: "from@example.com", username: "from" },
-        }),
-      );
-
-      // Act
-      const result1 = await invitationService.revoke(1);
-      const result2 = await invitationService.revoke(2);
-
-      // Assert
-      expect(result1).toEqual(err(InvitationServiceError.NotInProgress));
-      expect(result2).toEqual(err(InvitationServiceError.NotInProgress));
-    });
-
-    it("should revoke the invitation otherwise", async () => {
-      // Arrange
-      const invitation = Invitation.from({
-        createdAt: DATE_NOW,
-        id: 1,
-        status: InvitationStatus.InProgress,
-        updatedAt: DATE_NOW,
-        invitee: { email: "to@example.com" },
-        inviter: { email: "from@example.com", username: "from" },
-      });
-      invitationRepository.db.set(1, invitation);
-
-      // Act
-      const result = await invitationService.revoke(1);
-
-      // Assert
-      expect(result).toEqual(ok(undefined));
-    });
+    expect(result).toEqual(err("Failed to notify the recipient"));
   });
 
-  describe("sendNotification", () => {
-    it("should error if the invitation does not exits", async () => {
-      const result = await invitationService.sendNotification(1);
-
-      expect(result).toEqual(err(InvitationRepositoryError.NotFound));
+  it("should return ok even if the email is not inserted", async () => {
+    const team = {
+      ref: "team-ref",
+      createdAt: new Date(),
+      description: "description",
+      key: 1,
+      organizationKey: 1,
+      title: "title",
+    };
+    const user = {
+      email: "from@example.com",
+      key: 1,
+      ref: "user-ref",
+    };
+    const fakeEmailRepository = new FakeEmailRepository();
+    const uow = new FakeUnitOfWork({
+      team: new FakeTeamRepository([team]),
+      user: new FakeUserRepository([user]),
+      email: fakeEmailRepository,
     });
-    it("should error if the invitation does not have a status of InProgress", async () => {
-      invitationRepository.db.set(
-        1,
-        Invitation.from({
-          createdAt: DATE_NOW,
-          id: 1,
-          status: InvitationStatus.Accepted,
-          updatedAt: DATE_NOW,
-          invitee: { email: "to@example.com" },
-          inviter: { email: "from@example.com", username: "from" },
-        }),
-      );
-      invitationRepository.db.set(
-        2,
-        Invitation.from({
-          createdAt: DATE_NOW,
-          id: 2,
-          status: InvitationStatus.Expired,
-          updatedAt: DATE_NOW,
-          invitee: { email: "to@example.com" },
-          inviter: { email: "from@example.com", username: "from" },
-        }),
-      );
-      invitationRepository.db.set(
-        3,
-        Invitation.from({
-          createdAt: DATE_NOW,
-          id: 3,
-          status: InvitationStatus.Revoked,
-          updatedAt: DATE_NOW,
-          invitee: { email: "to@example.com" },
-          inviter: { email: "from@example.com", username: "from" },
-        }),
-      );
+    const notificationService = new FakeInvitationNotificationService();
+    const tokenService = new FakeTokenService();
+    const spy = vi.spyOn(fakeEmailRepository, "insert").mockResolvedValueOnce(
+      err({
+        kind: "INSERTION_FAILED_REPOSITORY_ERROR",
+        message: "Insert Failed",
+      }),
+    );
 
-      const result1 = await invitationService.sendNotification(1);
-      const result2 = await invitationService.sendNotification(2);
-      const result3 = await invitationService.sendNotification(3);
+    const service = new InvitationService(
+      uow,
+      notificationService,
+      tokenService,
+    );
 
-      expect(result1).toEqual(err(InvitationServiceError.NotInProgress));
-      expect(result2).toEqual(err(InvitationServiceError.NotInProgress));
-      expect(result3).toEqual(err(InvitationServiceError.NotInProgress));
+    const result = await service.invite({
+      teamRef: team.ref,
+      inviterRef: user.ref,
+      to: "to",
     });
-    it("should error if the invitee has no email", async () => {
-      // Arrange
-      invitationRepository.db.set(
-        1,
-        Invitation.from({
-          createdAt: DATE_NOW,
-          id: 1,
-          status: InvitationStatus.InProgress,
-          updatedAt: DATE_NOW,
-          invitee: { email: null },
-          inviter: { email: "from@example.com", username: "from" },
-        }),
-      );
 
-      // Act
-      const result = await invitationService.sendNotification(1);
-
-      // Assert
-      expect(result).toEqual(err(InvitationServiceError.InviteeHasNoEmail));
-    });
-    it("should notify the invitee and return the notification result", async () => {
-      invitationRepository.db.set(
-        1,
-        Invitation.from({
-          createdAt: DATE_NOW,
-          id: 1,
-          status: InvitationStatus.InProgress,
-          updatedAt: DATE_NOW,
-          invitee: { email: "to@example.com" },
-          inviter: { email: "from@example.com", username: "from" },
-        }),
-      );
-
-      // Act
-      const result = await invitationService.sendNotification(1);
-
-      // Assert
-      expect(result).toEqual(ok({ externalId: "fake-external-id-1", id: 1 }));
-    });
+    expect(result._unsafeUnwrap()).toEqual(undefined);
+    expect(spy).toHaveBeenCalledOnce();
   });
 
-  describe("setInvitee", () => {
-    it("should error if the invitation is not found", async () => {
-      const result = await invitationService.setInviteeEmail(
-        1,
-        "to@example.com",
-      );
+  it("should return ok if no errors occur", async () => {
+    // Arrange
+    const team = {
+      ref: "team-ref",
+      createdAt: new Date(),
+      description: "description",
+      key: 1,
+      organizationKey: 1,
+      title: "title",
+    };
+    const user = {
+      email: "from@example.com",
+      key: 1,
+      ref: "user-ref",
+    };
+    const fakeEmailRepository = new FakeEmailRepository();
+    const uow = new FakeUnitOfWork({
+      team: new FakeTeamRepository([team]),
+      user: new FakeUserRepository([user]),
+      email: fakeEmailRepository,
+    });
+    const notificationService = new FakeInvitationNotificationService();
+    const tokenService = new FakeTokenService();
+    const to = "to@example.com";
 
-      expect(result).toEqual(err(InvitationRepositoryError.NotFound));
+    // Act
+    const service = new InvitationService(
+      uow,
+      notificationService,
+      tokenService,
+    );
+
+    const result = await service.invite({
+      teamRef: team.ref,
+      inviterRef: user.ref,
+      to,
     });
 
-    it("should error if the invitee of the invitation already has an email", async () => {
-      invitationRepository.db.set(
-        1,
-        Invitation.from({
-          createdAt: DATE_NOW,
-          id: 1,
-          status: InvitationStatus.InProgress,
-          updatedAt: DATE_NOW,
-          invitee: { email: "to@example.com" },
-          inviter: { email: "from@example.com", username: "from" },
-        }),
-      );
+    // Assert
+    const expectedToken = JSON.stringify({
+      to,
+      teamRef: team.ref,
+      inviterRef: user.ref,
+    });
+    const expectedUrl = new URL("https://ena.dev/invitation");
+    expectedUrl.search = new URLSearchParams({
+      token: expectedToken,
+    }).toString();
 
-      const result = await invitationService.setInviteeEmail(
-        1,
-        "update@example.com",
-      );
-
-      expect(result).toEqual(
-        err(InvitationServiceError.InviteeAlreadyHasEmail),
-      );
+    const notifyCommand = Array.from(notificationService.commands)[0];
+    expect(notificationService.commands.size).toBe(1);
+    expect(notifyCommand).toMatchObject({
+      inviter: { email: user.email },
+      to,
+      team: { title: team.title },
+      callbackUrl: expectedUrl,
     });
 
-    it("should return ok result if the invitee email is set", async () => {
-      invitationRepository.db.set(
-        1,
-        Invitation.from({
-          createdAt: DATE_NOW,
-          id: 1,
-          status: InvitationStatus.InProgress,
-          updatedAt: DATE_NOW,
-          invitee: { email: null },
-          inviter: { email: "from@example.com", username: "from" },
-        }),
-      );
-
-      const result = await invitationService.setInviteeEmail(
-        1,
-        "update@example.com",
-      );
-
-      expect(result).toEqual(ok(undefined));
+    const savedEmail = Array.from(fakeEmailRepository.db.values())[0];
+    expect(fakeEmailRepository.db.size).toBe(1);
+    expect(savedEmail).toMatchObject({
+      fromKey: user.key,
+      to,
+      externalId: notifyCommand?.fakeId,
     });
+    expect(result._unsafeUnwrap()).toEqual(undefined);
   });
 });
 
-// patakia lastixo 47E
-// bros pisw 70E
-// kalyma 75E lastixo
-// 1648406780  42E
+describe("when validating a token", () => {
+  it("should return an error if the token service fails", async () => {
+    const tokenService = new FakeTokenService();
+    const service = new InvitationService(
+      new FakeUnitOfWork(),
+      new FakeInvitationNotificationService(),
+      tokenService,
+    );
+
+    vi.spyOn(tokenService, "verify").mockResolvedValueOnce(
+      err({
+        kind: "TokenExpired",
+        message: "Token has expired",
+      }),
+    );
+
+    const result = await service.validateInvitation("token");
+
+    expect(result).toEqual(
+      err({
+        kind: "TokenExpired",
+        message: "Token has expired",
+      }),
+    );
+  });
+
+  it("should return an error if the token payload is invalid", async () => {
+    const service = new InvitationService(
+      new FakeUnitOfWork(),
+      new FakeInvitationNotificationService(),
+      new FakeTokenService(),
+    );
+
+    const result = await service.validateInvitation(JSON.stringify("token"));
+
+    expect(result).toEqual(
+      err({
+        kind: "INVALID_INVITATION_TOKEN_PAYLOAD",
+        message: "Invalid payload",
+      }),
+    );
+  });
+
+  it("should return the payload if the token is valid", async () => {
+    const tokenService = new FakeTokenService();
+    const service = new InvitationService(
+      new FakeUnitOfWork(),
+      new FakeInvitationNotificationService(),
+      tokenService,
+    );
+    const payload = {
+      to: "to@example.com",
+      teamRef: "team-ref",
+      inviterRef: "inviter-ref",
+    };
+    const token = JSON.stringify(payload);
+
+    const result = await service.validateInvitation(token);
+
+    expect(result._unsafeUnwrap()).toEqual(payload);
+  });
+});

@@ -2,10 +2,12 @@
   "name": "@ena/services",
   "exports": {
     ".": "./src/index.ts",
-    "./repository/email": "./src/repository/emails/index.ts",
+    "./repository/email": "./src/repository/email/index.ts",
     "./repository/invitation": "./src/repository/invitation/index.ts",
     "./clock": "./src/utils/time-provider.ts",
-    "./token": "./src/token-service/token-service.ts"
+    "./token": "./src/token-service/token-service.ts",
+    "./repository/team": "./src/repository/team/team-repository.ts",
+    "./repository": "./src/repository/index.ts"
   },
   "dependencies": {
     "@ena/db": "workspace:*",

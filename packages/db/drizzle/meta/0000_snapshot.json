@@ -1,5 +1,5 @@
 {
-  "id": "63844803-a182-4422-85d8-a20442f457d6",
+  "id": "972b2e62-4366-43d3-9630-f0ab5c4d8975",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "5",
   "dialect": "pg",
@@ -8,11 +8,18 @@
       "name": "ena_pm_email",
       "schema": "",
       "columns": {
-        "id": {
-          "name": "id",
+        "key": {
+          "name": "key",
           "type": "serial",
           "primaryKey": true,
           "notNull": true
+        },
+        "ref": {
+          "name": "ref",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "gen_random_uuid()"
         },
         "external_id": {
           "name": "external_id",
@@ -26,15 +33,9 @@
           "primaryKey": false,
           "notNull": true
         },
-        "from": {
-          "name": "from",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "initiator": {
-          "name": "initiator",
-          "type": "text",
+        "from_key": {
+          "name": "from_key",
+          "type": "integer",
           "primaryKey": false,
           "notNull": true
         },
@@ -42,11 +43,22 @@
           "name": "created_at",
           "type": "timestamp",
           "primaryKey": false,
-          "notNull": true
+          "notNull": true,
+          "default": "now()"
         }
       },
       "indexes": {},
-      "foreignKeys": {},
+      "foreignKeys": {
+        "ena_pm_email_from_key_ena_pm_user_key_fk": {
+          "name": "ena_pm_email_from_key_ena_pm_user_key_fk",
+          "tableFrom": "ena_pm_email",
+          "tableTo": "ena_pm_user",
+          "columnsFrom": ["from_key"],
+          "columnsTo": ["key"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {}
     },
@@ -54,35 +66,25 @@
       "name": "ena_pm_invitation",
       "schema": "",
       "columns": {
-        "id": {
-          "name": "id",
+        "key": {
+          "name": "key",
           "type": "serial",
           "primaryKey": true,
           "notNull": true
         },
-        "email_invitee": {
-          "name": "email_invitee",
-          "type": "text",
+        "ref": {
+          "name": "ref",
+          "type": "uuid",
           "primaryKey": false,
-          "notNull": false
-        },
-        "email_inviter": {
-          "name": "email_inviter",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "username_inviter": {
-          "name": "username_inviter",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
+          "notNull": true,
+          "default": "gen_random_uuid()"
         },
         "created_at": {
           "name": "created_at",
           "type": "timestamp",
           "primaryKey": false,
-          "notNull": true
+          "notNull": true,
+          "default": "now()"
         },
         "updated_at": {
           "name": "updated_at",
@@ -90,8 +92,207 @@
           "primaryKey": false,
           "notNull": false
         },
+        "to": {
+          "name": "to",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
         "status": {
           "name": "status",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "team_key": {
+          "name": "team_key",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "inviter_key": {
+          "name": "inviter_key",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "invitation_ref_idx": {
+          "name": "invitation_ref_idx",
+          "columns": ["ref"],
+          "isUnique": true
+        },
+        "team_id_idx": {
+          "name": "team_id_idx",
+          "columns": ["team_key"],
+          "isUnique": false
+        },
+        "inviter_id_idx": {
+          "name": "inviter_id_idx",
+          "columns": ["inviter_key"],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "ena_pm_invitation_team_key_ena_pm_team_key_fk": {
+          "name": "ena_pm_invitation_team_key_ena_pm_team_key_fk",
+          "tableFrom": "ena_pm_invitation",
+          "tableTo": "ena_pm_team",
+          "columnsFrom": ["team_key"],
+          "columnsTo": ["key"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "ena_pm_invitation_inviter_key_ena_pm_user_key_fk": {
+          "name": "ena_pm_invitation_inviter_key_ena_pm_user_key_fk",
+          "tableFrom": "ena_pm_invitation",
+          "tableTo": "ena_pm_user",
+          "columnsFrom": ["inviter_key"],
+          "columnsTo": ["key"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {}
+    },
+    "ena_pm_organization": {
+      "name": "ena_pm_organization",
+      "schema": "",
+      "columns": {
+        "key": {
+          "name": "key",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "ref": {
+          "name": "ref",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "name": {
+          "name": "name",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "organization_ref_idx": {
+          "name": "organization_ref_idx",
+          "columns": ["ref"],
+          "isUnique": true
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {}
+    },
+    "ena_pm_team": {
+      "name": "ena_pm_team",
+      "schema": "",
+      "columns": {
+        "key": {
+          "name": "key",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "ref": {
+          "name": "ref",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "title": {
+          "name": "title",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "organization_key": {
+          "name": "organization_key",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "team_ref_idx": {
+          "name": "team_ref_idx",
+          "columns": ["ref"],
+          "isUnique": true
+        },
+        "organization_id_idx": {
+          "name": "organization_id_idx",
+          "columns": ["organization_key"],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "ena_pm_team_organization_key_ena_pm_organization_key_fk": {
+          "name": "ena_pm_team_organization_key_ena_pm_organization_key_fk",
+          "tableFrom": "ena_pm_team",
+          "tableTo": "ena_pm_organization",
+          "columnsFrom": ["organization_key"],
+          "columnsTo": ["key"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {}
+    },
+    "ena_pm_user": {
+      "name": "ena_pm_user",
+      "schema": "",
+      "columns": {
+        "key": {
+          "name": "key",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "ref": {
+          "name": "ref",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "email": {
+          "name": "email",
           "type": "varchar(255)",
           "primaryKey": false,
           "notNull": true

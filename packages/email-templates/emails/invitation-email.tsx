@@ -18,7 +18,7 @@ import {
 } from "@react-email/components";
 
 interface InvitationEmailProps {
-  inviter: { email: string; username: string; image?: string };
+  inviter: { email: string };
   to: string;
   teamName: string;
   teamImage: string;
@@ -61,16 +61,7 @@ export function InvitationEmail({
             </Text>
             <Section>
               <Row>
-                <Column align="right">
-                  <Img
-                    className="rounded-full"
-                    src={inviter.image}
-                    width="64"
-                    height="64"
-                  />
-                </Column>
-                <Column align="center"></Column>
-                <Column align="left">
+                <Column align="center">
                   <Img
                     className="rounded-full"
                     src={teamImage}

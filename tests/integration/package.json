@@ -10,13 +10,14 @@
   },
   "dependencies": {
     "@ena/db": "workspace:*",
-    "@ena/services": "workspace:*",
-    "@ena/domain": "workspace:*"
+    "@ena/domain": "workspace:*",
+    "@ena/services": "workspace:*"
   },
   "devDependencies": {
     "@ena/eslint-config": "workspace:*",
     "@ena/prettier-config": "workspace:*",
     "@ena/tsconfig": "workspace:*",
+    "@faker-js/faker": "^8.4.1",
     "@testcontainers/postgresql": "^10.7.2",
     "vitest": "^1.3.1"
   },

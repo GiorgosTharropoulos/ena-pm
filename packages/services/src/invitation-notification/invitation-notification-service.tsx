@@ -1,9 +1,8 @@
 import type { Result } from "neverthrow";
-import React from "react";
+import * as React from "react";
 import { render } from "@react-email/render";
 import { ok } from "neverthrow";
 
-import type { Inviter } from "@ena/domain";
 import { InvitationEmail } from "@ena/email-templates";
 
 import type {
@@ -13,9 +12,10 @@ import type {
 } from "../email/email-service";
 
 export interface InvitationNotificationCommand {
-  inviter: Inviter;
+  inviter: { email: string };
   to: string;
   callbackUrl: string;
+  team: { title: string };
 }
 
 export interface InvitationNotificationService {
@@ -33,7 +33,7 @@ export class InvitationNotifier implements InvitationNotificationService {
   async notify(
     command: InvitationNotificationCommand,
   ): Promise<Result<SendEmailSuccess, SendEmailFail>> {
-    const { to, inviter, callbackUrl } = command;
+    const { to, inviter, callbackUrl, team } = command;
 
     return this.emailService.send({
       from: InvitationNotifier.FROM,
@@ -45,9 +45,9 @@ export class InvitationNotifier implements InvitationNotificationService {
           inviter={inviter}
           inviteLink={callbackUrl}
           to={to}
-          previewText="You have been invited to join ENA!"
+          previewText={`You have been invited to join ${team.title}!`}
           teamImage="https://upload.wikimedia.org/wikipedia/commons/e/e6/Ena_Channel_Kavala_logo.png"
-          teamName="ENA"
+          teamName={team.title}
         />,
       ),
     });
@@ -57,17 +57,24 @@ export class InvitationNotifier implements InvitationNotificationService {
 export class FakeInvitationNotificationService
   implements InvitationNotificationService
 {
-  private lastId = 1;
+  private lastId = 0;
 
-  public commands = new Map<number, InvitationNotificationCommand>();
+  public commands = new Set<
+    InvitationNotificationCommand & { fakeId: string }
+  >();
 
   notify(
-    _command: InvitationNotificationCommand,
+    command: InvitationNotificationCommand,
   ): Promise<Result<SendEmailSuccess, SendEmailFail>> {
-    this.commands = this.commands.set(this.lastId, _command);
+    this.lastId++;
+    const externalId = `fake-external-id-${this.lastId}`;
+    this.commands.add({
+      ...command,
+      fakeId: externalId,
+    });
     return Promise.resolve(
       ok({
-        externalId: `fake-external-id-${this.lastId}`,
+        externalId,
         id: this.lastId++,
       }),
     );
