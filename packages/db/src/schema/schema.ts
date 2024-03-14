@@ -1,46 +1,37 @@
 import { relations } from "drizzle-orm";
-import {
-  index,
-  integer,
-  serial,
-  text,
-  timestamp,
-  uniqueIndex,
-  uuid,
-  varchar,
-} from "drizzle-orm/pg-core";
+import { index, text, timestamp, uuid, varchar } from "drizzle-orm/pg-core";
 
 import type { InvitationStatus } from "@ena/domain";
 
 import { pgTable } from "./_table";
 
+export const session = pgTable("session", {
+  id: text("id").primaryKey(),
+  userId: text("user_id")
+    .notNull()
+    .references(() => user.id),
+  expiresAt: timestamp("expires_at", {
+    withTimezone: true,
+    mode: "date",
+  }).notNull(),
+});
+
 export const user = pgTable("user", {
-  key: serial("key").primaryKey(),
-  ref: uuid("ref").defaultRandom().notNull(),
-  email: varchar("email", { length: 255 }).notNull(),
+  id: text("id").primaryKey(),
+  email: varchar("email", { length: 255 }).notNull().unique(),
 });
 
 export const userRelations = relations(user, ({ many }) => ({
   invitations: many(invitation),
-  emails: many(email),
+  emails: many(email, { relationName: "sender" }),
 }));
 
-export const organization = pgTable(
-  "organization",
-  {
-    key: serial("key").primaryKey(),
-    ref: uuid("ref").defaultRandom().notNull(),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
-
-    title: varchar("name", { length: 255 }).notNull(),
-    description: text("description"),
-  },
-  (table) => {
-    return {
-      refIdx: uniqueIndex("organization_ref_idx").on(table.ref),
-    };
-  },
-);
+export const organization = pgTable("organization", {
+  id: uuid("ref").defaultRandom().notNull().primaryKey(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  title: varchar("name", { length: 255 }).notNull(),
+  description: text("description"),
+});
 
 export const organizationRelations = relations(organization, ({ many }) => ({
   teams: many(team),
@@ -49,29 +40,25 @@ export const organizationRelations = relations(organization, ({ many }) => ({
 export const team = pgTable(
   "team",
   {
-    key: serial("key").primaryKey(),
-    ref: uuid("ref").defaultRandom().notNull(),
+    id: uuid("ref").defaultRandom().primaryKey(),
     createdAt: timestamp("created_at").defaultNow().notNull(),
-
     title: varchar("title", { length: 255 }).notNull(),
     description: text("description"),
-
-    organizationKey: integer("organization_key")
-      .references(() => organization.key)
+    organizationId: uuid("organization_id")
+      .references(() => organization.id)
       .notNull(),
   },
   (table) => {
     return {
-      refIdx: uniqueIndex("team_ref_idx").on(table.ref),
-      organizationIdx: index("organization_id_idx").on(table.organizationKey),
+      organizationIdx: index("organization_id_idx").on(table.organizationId),
     };
   },
 );
 
 export const teamRelations = relations(team, ({ one, many }) => ({
   organization: one(organization, {
-    fields: [team.organizationKey],
-    references: [organization.key],
+    fields: [team.organizationId],
+    references: [organization.id],
   }),
   invitations: many(invitation),
 }));
@@ -79,56 +66,51 @@ export const teamRelations = relations(team, ({ one, many }) => ({
 export const invitation = pgTable(
   "invitation",
   {
-    key: serial("key").primaryKey(),
-    ref: uuid("ref").defaultRandom().notNull(),
-
+    id: uuid("ref").defaultRandom().primaryKey(),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at"),
-
     to: varchar("to", { length: 255 }).notNull(),
     status: varchar("status", { length: 255 })
       .$type<InvitationStatus>()
       .notNull(),
 
-    teamKey: integer("team_key")
+    teamId: uuid("team_id")
       .notNull()
-      .references(() => team.key),
-    inviterKey: integer("inviter_key")
+      .references(() => team.id),
+    inviterId: text("inviter_id")
       .notNull()
-      .references(() => user.key),
+      .references(() => user.id),
   },
   (table) => ({
-    refIdx: uniqueIndex("invitation_ref_idx").on(table.ref),
-    teamIdx: index("team_id_idx").on(table.teamKey),
-    inviterIdx: index("inviter_id_idx").on(table.inviterKey),
+    teamIdx: index("team_id_idx").on(table.teamId),
+    inviterIdx: index("inviter_id_idx").on(table.inviterId),
   }),
 );
 
 export const invitationRelations = relations(invitation, ({ one }) => ({
   team: one(team, {
-    fields: [invitation.teamKey],
-    references: [team.key],
+    fields: [invitation.teamId],
+    references: [team.id],
   }),
   inviter: one(user, {
-    fields: [invitation.inviterKey],
-    references: [user.key],
+    fields: [invitation.inviterId],
+    references: [user.id],
   }),
 }));
 
 export const email = pgTable("email", {
-  key: serial("key").primaryKey(),
-  ref: uuid("ref").defaultRandom().notNull(),
+  id: uuid("id").defaultRandom().primaryKey(),
   externalId: text("external_id").notNull(),
   to: text("to").notNull(),
-  fromKey: integer("from_key")
+  inviterId: text("inviter_id")
     .notNull()
-    .references(() => user.key),
+    .references(() => user.id),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
 export const emailRelations = relations(email, ({ one }) => ({
   from: one(user, {
-    fields: [email.fromKey],
-    references: [user.key],
+    fields: [email.inviterId],
+    references: [user.id],
   }),
 }));

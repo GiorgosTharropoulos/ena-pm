@@ -32,7 +32,7 @@ export class FakeEmailRepository
       seed,
       mapInsertValue: (data) => ({
         ...data,
-        ref: faker.string.uuid(),
+        id: faker.string.uuid(),
         createdAt: this.clock?.now() ?? new Date(),
         key: ++this.lastId,
       }),
@@ -57,9 +57,8 @@ export class FakeOrganizationRepository
       seed,
       mapInsertValue: (data) => ({
         ...data,
-        ref: faker.string.uuid(),
+        id: faker.string.uuid(),
         createdAt: this.clock?.now() ?? new Date(),
-        key: ++this.lastId,
       }),
     });
   }
@@ -78,9 +77,8 @@ export class FakeTeamRepository
       seed,
       mapInsertValue: (data) => ({
         ...data,
-        ref: faker.string.uuid(),
+        id: faker.string.uuid(),
         createdAt: this.clock?.now() ?? new Date(),
-        key: ++this.lastId,
         description: data.description ?? null,
       }),
     });

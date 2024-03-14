@@ -17,15 +17,15 @@ export class FakeRepository<TSelect extends Root, TInsert, TUpdate>
     mapInsertValue: (data: TInsert) => TSelect;
   }) {
     this.mapInsertValue = mapInsertValue;
-    this.db = new Map(seed?.map((item) => [item.ref, item]) ?? []);
+    this.db = new Map(seed?.map((item) => [item.id, item]) ?? []);
   }
 
-  public db: Map<Root["ref"], TSelect>;
+  public db: Map<Root["id"], TSelect>;
   private readonly mapInsertValue: (data: TInsert) => TSelect;
 
   insert(data: TInsert): Promise<Result<TSelect, InsertFailedRepositoryError>> {
     const mappedData = this.mapInsertValue(data);
-    this.db.set(mappedData.ref, mappedData);
+    this.db.set(mappedData.id, mappedData);
     return Promise.resolve(ok(mappedData));
   }
 
@@ -35,8 +35,8 @@ export class FakeRepository<TSelect extends Root, TInsert, TUpdate>
   ): Promise<Result<TSelect, NotFoundRepositoryError>> {
     const retrieved = this.db.get(ref);
     if (!retrieved) return Promise.resolve(err(NotFoundRepositoryError));
-    this.db.set(retrieved.ref, { ...retrieved, ...data });
-    return Promise.resolve(ok(this.db.get(retrieved.ref)!));
+    this.db.set(retrieved.id, { ...retrieved, ...data });
+    return Promise.resolve(ok(this.db.get(retrieved.id)!));
   }
 
   find(ref: string): Promise<Result<TSelect, NotFoundRepositoryError>> {

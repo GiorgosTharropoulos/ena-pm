@@ -47,7 +47,7 @@ it("should insert a team", async () => {
   const repo = new DrizzleTeamRepository(db);
 
   const team = {
-    organizationKey: organization.key,
+    organizationId: organization.id,
     title: "title",
     description: "description",
   };
@@ -58,9 +58,8 @@ it("should insert a team", async () => {
 
   expect(inserted.isOk()).toBe(true);
   expect(retrieved).toHaveLength(1);
-  expect(retrieved[0]).toEqual({
-    key: expect.any(Number),
-    ref: expect.any(String),
+  expect(retrieved[0]).toEqual<(typeof retrieved)[number]>({
+    id: expect.any(String),
     createdAt: expect.any(Date),
     ...team,
   });
@@ -72,7 +71,7 @@ describe("when updating a team", () => {
     const team = await db
       .insert(schema.team)
       .values({
-        organizationKey: organization.key,
+        organizationId: organization.id,
         title: "title",
       })
       .returning()
@@ -84,18 +83,17 @@ describe("when updating a team", () => {
       title: "new title",
       description: "new description",
     };
-    const updated = await repo.update(team.ref, updatedValues);
+    const updated = await repo.update(team.id, updatedValues);
 
     const retrieved = await db.query.team.findFirst({
-      where: eq(schema.team.key, team.key),
+      where: eq(schema.team.id, team.id),
     });
 
     expect(updated.isOk()).toBe(true);
     expect(retrieved).toEqual<typeof retrieved>({
       createdAt: expect.any(Date),
-      key: team.key,
-      organizationKey: team.organizationKey,
-      ref: team.ref,
+      id: team.id,
+      organizationId: team.organizationId,
       description: updatedValues.description,
       title: updatedValues.title,
     });
@@ -123,11 +121,11 @@ describe("when finding a team", () => {
   });
 
   it("should return the team if it exists", async () => {
-    const organizationId = await createOrganization();
+    const organization = await createOrganization();
     const team = await db
       .insert(schema.team)
       .values({
-        organizationKey: organizationId.key,
+        organizationId: organization.id,
         title: "title",
       })
       .returning()
@@ -135,7 +133,7 @@ describe("when finding a team", () => {
 
     const repo = new DrizzleTeamRepository(db);
 
-    const retrieved = await repo.find(team.ref);
+    const retrieved = await repo.find(team.id);
 
     expect(retrieved).toEqual(ok(team));
   });

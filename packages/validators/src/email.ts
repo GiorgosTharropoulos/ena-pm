@@ -1,18 +1,17 @@
 import { z } from "zod";
 
 const emailSelectSchema = z.object({
-  key: z.number(),
-  ref: z.string(),
+  id: z.string(),
   externalId: z.string(),
   to: z.string().email(),
-  fromKey: z.number(),
   createdAt: z.date(),
+  inviterId: z.string(),
 });
 
 const emailInsertSchema = z.object({
+  inviterId: z.string(),
   externalId: z.string(),
   to: z.string().email(),
-  fromKey: z.number(),
 });
 
 export type EmailSelectSchema = z.infer<typeof emailSelectSchema>;

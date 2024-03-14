@@ -38,11 +38,10 @@ describe("when inviting a user", () => {
 
   it("should error when the inviter does not exist", async () => {
     const team = {
-      ref: "team-ref",
+      id: "team-ref",
       createdAt: new Date(),
       description: "description",
-      key: 1,
-      organizationKey: 1,
+      organizationId: "organization-id",
       title: "title",
     };
     const uow = new FakeUnitOfWork({
@@ -58,7 +57,7 @@ describe("when inviting a user", () => {
     );
 
     const result = await service.invite({
-      teamRef: team.ref,
+      teamRef: team.id,
       inviterRef: "inviter-ref",
       to: "to",
     });
@@ -68,17 +67,16 @@ describe("when inviting a user", () => {
 
   it("should return an error when the notification service fails", async () => {
     const team = {
-      ref: "team-ref",
+      id: "team-ref",
       createdAt: new Date(),
       description: "description",
       key: 1,
-      organizationKey: 1,
+      organizationId: "organization-id",
       title: "title",
     };
     const user = {
       email: "from@example.com",
-      key: 1,
-      ref: "user-ref",
+      id: "user-id",
     };
     const uow = new FakeUnitOfWork({
       team: new FakeTeamRepository([team]),
@@ -100,8 +98,8 @@ describe("when inviting a user", () => {
     );
 
     const result = await service.invite({
-      teamRef: team.ref,
-      inviterRef: user.ref,
+      teamRef: team.id,
+      inviterRef: user.id,
       to: "to",
     });
 
@@ -110,17 +108,16 @@ describe("when inviting a user", () => {
 
   it("should return ok even if the email is not inserted", async () => {
     const team = {
-      ref: "team-ref",
+      id: "team-ref",
       createdAt: new Date(),
       description: "description",
       key: 1,
-      organizationKey: 1,
+      organizationId: "organization-id",
       title: "title",
     };
     const user = {
       email: "from@example.com",
-      key: 1,
-      ref: "user-ref",
+      id: "user-id",
     };
     const fakeEmailRepository = new FakeEmailRepository();
     const uow = new FakeUnitOfWork({
@@ -144,8 +141,8 @@ describe("when inviting a user", () => {
     );
 
     const result = await service.invite({
-      teamRef: team.ref,
-      inviterRef: user.ref,
+      teamRef: team.id,
+      inviterRef: user.id,
       to: "to",
     });
 
@@ -156,17 +153,16 @@ describe("when inviting a user", () => {
   it("should return ok if no errors occur", async () => {
     // Arrange
     const team = {
-      ref: "team-ref",
+      id: "team-ref",
       createdAt: new Date(),
       description: "description",
       key: 1,
-      organizationKey: 1,
+      organizationId: "organization-id",
       title: "title",
     };
     const user = {
       email: "from@example.com",
-      key: 1,
-      ref: "user-ref",
+      id: "user-ref",
     };
     const fakeEmailRepository = new FakeEmailRepository();
     const uow = new FakeUnitOfWork({
@@ -186,16 +182,16 @@ describe("when inviting a user", () => {
     );
 
     const result = await service.invite({
-      teamRef: team.ref,
-      inviterRef: user.ref,
+      teamRef: team.id,
+      inviterRef: user.id,
       to,
     });
 
     // Assert
     const expectedToken = JSON.stringify({
       to,
-      teamRef: team.ref,
-      inviterRef: user.ref,
+      teamRef: team.id,
+      inviterRef: user.id,
     });
     const expectedUrl = new URL("https://ena.dev/invitation");
     expectedUrl.search = new URLSearchParams({
@@ -214,7 +210,7 @@ describe("when inviting a user", () => {
     const savedEmail = Array.from(fakeEmailRepository.db.values())[0];
     expect(fakeEmailRepository.db.size).toBe(1);
     expect(savedEmail).toMatchObject({
-      fromKey: user.key,
+      inviterId: user.id,
       to,
       externalId: notifyCommand?.fakeId,
     });

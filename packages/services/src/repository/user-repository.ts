@@ -1,23 +1,16 @@
 import type { Result } from "neverthrow";
+import { err, ok } from "neverthrow";
 
 import type { DrizzleDB } from "@ena/db";
 import type { UserForSelect } from "@ena/validators";
 
-import type {
-  InsertFailedRepositoryError,
-  NotFoundRepositoryError,
-  Repository,
-} from "./types";
-import { ModelRepository } from "./model-repository";
+import type { InsertFailedRepositoryError, Repository } from "./types";
+import { NotFoundRepositoryError } from "./types";
 
 export type UserRepository = Repository<UserForSelect, void, void>;
 
 export class DrizzleUserRepository implements UserRepository {
-  modelRepository: ModelRepository<"user">;
-
-  constructor(private readonly db: DrizzleDB) {
-    this.modelRepository = new ModelRepository(db, "user");
-  }
+  constructor(private readonly db: DrizzleDB) {}
 
   insert(): Promise<Result<UserForSelect, InsertFailedRepositoryError>> {
     throw new Error("Not implemented");
@@ -34,6 +27,11 @@ export class DrizzleUserRepository implements UserRepository {
   async find(
     ref: string,
   ): Promise<Result<UserForSelect, NotFoundRepositoryError>> {
-    return this.modelRepository.find(ref);
+    const user = await this.db.query.user.findFirst({
+      where: (user, { eq }) => eq(user.id, ref),
+    });
+
+    if (!user) return err(NotFoundRepositoryError);
+    return ok(user);
   }
 }

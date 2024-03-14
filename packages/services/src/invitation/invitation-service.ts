@@ -29,7 +29,7 @@ export class InvitationService {
 
       const team = teamResult.value;
       const inviter = inviterResult.value;
-      const tokenPayload = { to, teamRef: team.ref, inviterRef: inviter.ref };
+      const tokenPayload = { to, teamRef: team.id, inviterRef: inviter.id };
       const token = await this.tokenService.sign(tokenPayload);
       const notificationResult = await this.notificationService.notify({
         to,
@@ -45,7 +45,7 @@ export class InvitationService {
       }
 
       const { externalId } = notificationResult.value;
-      const email = { externalId, fromKey: inviter.key, to };
+      const email = { externalId, inviterId: inviter.id, to };
       await tx.repository.email.insert(email);
 
       return ok(undefined);

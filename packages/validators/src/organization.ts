@@ -1,8 +1,7 @@
 import { z } from "zod";
 
 const organizationSelectSchema = z.object({
-  key: z.number(),
-  ref: z.string(),
+  id: z.string(),
   createdAt: z.date(),
   title: z.string().max(255, "Name must be less than 255 characters"),
   description: z.string().nullable(),

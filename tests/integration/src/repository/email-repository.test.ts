@@ -4,6 +4,7 @@ import { PostgreSqlContainer } from "@testcontainers/postgresql";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import type { DrizzleDB } from "@ena/db";
+import type { EmailInsertSchema } from "@ena/validators";
 import { getDrizzle, schema } from "@ena/db";
 import { getPgClient } from "@ena/db/utils";
 import { DrizzleEmailRepository } from "@ena/services/repository";
@@ -18,6 +19,7 @@ describe("EmailRepository", () => {
     const r = await db
       .insert(schema.user)
       .values({
+        id: "hello",
         email: "from@example.com",
       })
       .returning();
@@ -39,11 +41,12 @@ describe("EmailRepository", () => {
 
     const user = await createUser();
 
-    const email = {
+    const email: EmailInsertSchema = {
       externalId: "123",
-      fromKey: user.key,
       to: "to@example.com",
+      inviterId: user.id,
     };
+
     const insert = await repository.insert(email);
 
     const emailsInDb = await db.select().from(schema.email);
@@ -53,10 +56,9 @@ describe("EmailRepository", () => {
     expect(emailsInDb[0]).toEqual<(typeof emailsInDb)[number]>({
       createdAt: expect.any(Date),
       externalId: email.externalId,
-      fromKey: user.key,
-      key: 1,
-      ref: expect.any(String),
+      inviterId: user.id,
       to: email.to,
+      id: expect.any(String),
     });
   });
 });

@@ -1,18 +1,17 @@
 import { z } from "zod";
 
 const teamSelectSchema = z.object({
-  key: z.number(),
-  ref: z.string(),
+  id: z.string(),
   createdAt: z.date(),
   title: z.string().max(255, "Title must be less than 255 characters"),
   description: z.string().nullable(),
-  organizationKey: z.number(),
+  organizationId: z.string(),
 });
 
 const teamInsertSchema = z.object({
   title: z.string().max(255, "Title must be less than 255 characters"),
   description: z.string().nullish(),
-  organizationKey: z.number(),
+  organizationId: z.string(),
 });
 
 const teamUpdateSchema = z

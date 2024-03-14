@@ -1,8 +1,7 @@
 import { z } from "zod";
 
 const userSelectSchema = z.object({
-  key: z.number(),
-  ref: z.string(),
+  id: z.string(),
   email: z.string().email(),
 });
 

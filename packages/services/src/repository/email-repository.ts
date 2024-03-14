@@ -38,8 +38,8 @@ export class DrizzleEmailRepository implements EmailRepository {
   }
 
   async find(
-    ref: string,
+    id: string,
   ): Promise<Result<EmailSelectSchema, NotFoundRepositoryError>> {
-    return this.modelRepository.find(ref);
+    return this.modelRepository.find(id);
   }
 }

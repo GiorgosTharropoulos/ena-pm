@@ -11,7 +11,8 @@
   "dependencies": {
     "@ena/db": "workspace:*",
     "@ena/domain": "workspace:*",
-    "@ena/services": "workspace:*"
+    "@ena/services": "workspace:*",
+    "@ena/validators": "workspace:*"
   },
   "devDependencies": {
     "@ena/eslint-config": "workspace:*",
