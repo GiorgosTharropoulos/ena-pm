@@ -19,6 +19,7 @@ export const session = pgTable("session", {
 export const user = pgTable("user", {
   id: text("id").primaryKey(),
   email: varchar("email", { length: 255 }).notNull().unique(),
+  password: text("password"),
 });
 
 export const userRelations = relations(user, ({ many }) => ({

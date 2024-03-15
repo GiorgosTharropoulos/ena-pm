@@ -2,18 +2,53 @@ import type { Result } from "neverthrow";
 import { err, ok } from "neverthrow";
 
 import type { DrizzleDB } from "@ena/db";
-import type { UserForSelect } from "@ena/validators";
+import type { UserForInsert, UserForSelect } from "@ena/validators";
+import { PostgresError, schema } from "@ena/db";
 
-import type { InsertFailedRepositoryError, Repository } from "./types";
-import { NotFoundRepositoryError } from "./types";
+import type { UnknownError } from "../errors";
+import type { Repository } from "./types";
+import { createUnknownError } from "../errors";
+import { InsertFailedRepositoryError, NotFoundRepositoryError } from "./types";
 
-export type UserRepository = Repository<UserForSelect, void, void>;
+export interface UserRepository
+  extends Omit<Repository<UserForSelect, UserForInsert, void>, "insert"> {
+  insert(
+    data: UserForInsert,
+  ): Promise<Result<UserForSelect, UserInsertionError>>;
+}
+
+export const EmailAlreadyUsedError = {
+  kind: "EMAIL_ALREADY_USED",
+  message: "Email is already in use",
+} as const;
+type EmailAlreadyUsedError = typeof EmailAlreadyUsedError;
+
+export type UserInsertionError =
+  | EmailAlreadyUsedError
+  | InsertFailedRepositoryError
+  | UnknownError;
 
 export class DrizzleUserRepository implements UserRepository {
   constructor(private readonly db: DrizzleDB) {}
 
-  insert(): Promise<Result<UserForSelect, InsertFailedRepositoryError>> {
-    throw new Error("Not implemented");
+  async insert(
+    data: UserForInsert,
+  ): Promise<Result<UserForSelect, UserInsertionError>> {
+    try {
+      const rows = await this.db.insert(schema.user).values(data).returning({
+        id: schema.user.id,
+        email: schema.user.email,
+      });
+      const row = rows[0];
+
+      if (!row) return err(InsertFailedRepositoryError);
+      return ok(row);
+    } catch (error) {
+      if (error instanceof PostgresError && error.code === "23505") {
+        return err(EmailAlreadyUsedError);
+      }
+      return err(createUnknownError(error));
+    }
   }
 
   update(): Promise<Result<UserForSelect, NotFoundRepositoryError>> {

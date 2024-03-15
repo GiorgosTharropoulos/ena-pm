@@ -23,6 +23,12 @@ importers:
 
   packages/auth:
     dependencies:
+      '@ena/db':
+        specifier: workspace:^*
+        version: link:../db
+      '@lucia-auth/adapter-drizzle':
+        specifier: ^1.0.3
+        version: 1.0.3(lucia@3.1.1)
       lucia:
         specifier: ^3.1.1
         version: 3.1.1
@@ -134,6 +140,9 @@ importers:
 
   packages/services:
     dependencies:
+      '@ena/auth':
+        specifier: workspace:*
+        version: link:../auth
       '@ena/db':
         specifier: workspace:*
         version: link:../db
@@ -1343,6 +1352,14 @@ packages:
     dependencies:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.4.15
+
+  /@lucia-auth/adapter-drizzle@1.0.3(lucia@3.1.1):
+    resolution: {integrity: sha512-5C3O5PGV9IpGTM8cr5trE9+Pr3FM8LXOUPusQWD3svGW/S7vNebQit7uEfDUxFAuUhutoLoXTr7SQ1jZWjaBoA==}
+    peerDependencies:
+      lucia: 3.x
+    dependencies:
+      lucia: 3.1.1
+    dev: false
 
   /@napi-rs/wasm-runtime@0.1.1:
     resolution: {integrity: sha512-ATj9ua659JgrkICjJscaeZdmPr44cb/KFjNWuD0N6pux0SpzaM7+iOuuK11mAnQM2N9q0DT4REu6NkL8ZEhopw==}
