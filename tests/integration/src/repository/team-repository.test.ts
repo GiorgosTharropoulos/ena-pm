@@ -1,8 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
-import type { StartedPostgreSqlContainer } from "@testcontainers/postgresql";
 import { faker } from "@faker-js/faker";
-import { PostgreSqlContainer } from "@testcontainers/postgresql";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, inject, it } from "vitest";
 
 import type { DrizzleDB } from "@ena/db";
 import { eq, getDrizzle, schema } from "@ena/db";
@@ -13,9 +11,6 @@ import {
   NotFoundRepositoryError,
 } from "@ena/services/repository";
 
-import { migrateDB } from "../utils";
-
-let container: StartedPostgreSqlContainer;
 let db: DrizzleDB;
 
 async function createOrganization() {
@@ -31,15 +26,9 @@ async function createOrganization() {
     .then((row) => row!);
 }
 
-beforeAll(async () => {
-  container = await new PostgreSqlContainer().start();
-  await migrateDB(container);
-  db = getDrizzle(getPgClient(container.getConnectionUri()));
-}, 60_000);
-
-afterAll(async () => {
-  await container.stop();
-}, 60_000);
+beforeAll(() => {
+  db = getDrizzle(getPgClient(inject("dbConnectionUri")));
+});
 
 it("should insert a team", async () => {
   const organization = await createOrganization();

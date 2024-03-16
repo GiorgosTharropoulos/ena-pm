@@ -19,9 +19,13 @@ import type { Clock } from "../../utils/time-provider";
 import type { EmailRepository } from "../email-repository";
 import type { OrganizationRepository } from "../organization-repository";
 import type { TeamRepository } from "../team-repository";
-import type { UserInsertionError, UserRepository } from "../user-repository";
+import type {
+  SelectUserModel,
+  UserInsertionError,
+  UserRepository,
+} from "../user/types";
 import { NotFoundRepositoryError } from "../types";
-import { EmailAlreadyUsedError } from "../user-repository";
+import { EmailAlreadyUsedError } from "../user/types";
 import { FakeRepository } from "./fake-repository";
 
 export class FakeEmailRepository
@@ -91,34 +95,24 @@ export class FakeTeamRepository
 }
 
 export class FakeUserRepository implements UserRepository {
-  readonly db: Map<string, UserForSelect>;
-  public constructor(seed?: UserForSelect[]) {
+  readonly db: Map<string, SelectUserModel>;
+  public constructor(seed?: SelectUserModel[]) {
     this.db = new Map(seed?.map((u) => [u.id, u]) ?? []);
-  }
-
-  find(
-    ref: string,
-  ): Promise<Result<{ id: string; email: string }, NotFoundRepositoryError>> {
-    const user = this.db.get(ref);
-    if (!user) {
-      return Promise.resolve(err(NotFoundRepositoryError));
-    }
-    return Promise.resolve(ok(user));
   }
   update(
     _ref: string,
     _data: void,
-  ): Promise<
-    Result<
-      { id: string; email: string },
-      {
-        readonly kind: "NOT_FOUND_REPOSITORY_ERROR ";
-        readonly message: "Not found";
-      }
-    >
-  > {
+  ): Promise<Result<SelectUserModel, NotFoundRepositoryError>> {
     throw new Error("Method not implemented.");
   }
+  async find(
+    id: string,
+  ): Promise<Result<SelectUserModel, NotFoundRepositoryError>> {
+    const model = await Promise.resolve(this.db.get(id));
+    if (!model) return err(NotFoundRepositoryError);
+    return ok(model);
+  }
+
   remove(_ref: string): Promise<
     Result<
       void,
@@ -133,7 +127,7 @@ export class FakeUserRepository implements UserRepository {
 
   insert(
     data: UserForInsert,
-  ): Promise<Result<UserForSelect, UserInsertionError>> {
+  ): Promise<Result<SelectUserModel, UserInsertionError>> {
     const user = Array.from(this.db.values()).find(
       (u) => u.email === data.email,
     );
@@ -142,9 +136,18 @@ export class FakeUserRepository implements UserRepository {
     }
 
     const newUser = data;
-    this.db.set(newUser.id, newUser);
-    const { password: _, ...rest } = newUser;
+    this.db.set(newUser.id, { ...newUser, password: newUser.password ?? null });
 
-    return Promise.resolve(ok(rest));
+    return Promise.resolve(ok(this.db.get(newUser.id)!));
+  }
+
+  findByEmail(
+    email: string,
+  ): Promise<Result<SelectUserModel, NotFoundRepositoryError>> {
+    const user = Array.from(this.db.values()).find((u) => u.email === email);
+    if (!user) {
+      return Promise.resolve(err(NotFoundRepositoryError));
+    }
+    return Promise.resolve(ok(user));
   }
 }

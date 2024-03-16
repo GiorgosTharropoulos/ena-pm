@@ -12,6 +12,7 @@
     "lint": "eslint .",
     "push": "pnpm with-env drizzle-kit push:pg",
     "generate": "drizzle-kit generate:pg",
+    "generate:test": "drizzle-kit generate:pg --config=./test-drizzle.config.ts",
     "studio": "pnpm with-env drizzle-kit studio",
     "typecheck": "tsc --noEmit",
     "with-env": "dotenv -e ../../.env --"

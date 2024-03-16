@@ -4,4 +4,4 @@ export * from "./model-repository";
 export * from "./organization-repository";
 export * from "./team-repository";
 export * from "./types";
-export * from "./user-repository";
+export * from "./user";

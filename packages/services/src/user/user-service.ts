@@ -1,38 +1,28 @@
-import { ok } from "neverthrow";
+import { err, ok } from "neverthrow";
 
-import type { Session } from "@ena/auth";
 import type { CreateUserSchema } from "@ena/validators";
 
+import type { AuthService } from "../auth/types";
 import type { UnitOfWork } from "../unit-of-work";
 
-type UserIdGenerator = (length: number) => string;
-type PasswordHasher = (password: string) => Promise<string>;
-
-export interface SessionService {
-  createSession(userId: string): Session;
-}
+export const IncorrectEmailOrPassword = {
+  kind: "INCORRECT_EMAIL_OR_PASSWORD",
+  message: "Incorrect email or password",
+} as const;
+export type IncorrectEmailOrPassword = typeof IncorrectEmailOrPassword;
 
 export class UserService {
-  private readonly userIdGenerator: UserIdGenerator;
-  private readonly hash: PasswordHasher;
+  private readonly auth: AuthService;
   private readonly uow: UnitOfWork;
-  private readonly sessionService: SessionService;
 
-  constructor(options: {
-    userIdGenerator: UserIdGenerator;
-    uow: UnitOfWork;
-    hash: PasswordHasher;
-    sessionService: SessionService;
-  }) {
-    this.userIdGenerator = options.userIdGenerator;
+  constructor(options: { uow: UnitOfWork; auth: AuthService }) {
     this.uow = options.uow;
-    this.hash = options.hash;
-    this.sessionService = options.sessionService;
+    this.auth = options.auth;
   }
 
-  async signupWithPassword(command: CreateUserSchema) {
-    const hashedPassword = await this.hash(command.unsafePassword);
-    const userId = this.userIdGenerator(15);
+  async signupWithPassword(command: Readonly<CreateUserSchema>) {
+    const hashedPassword = await this.auth.hashPassword(command.unsafePassword);
+    const userId = this.auth.generateUserId(15);
     const userResult = await this.uow.transaction(async (tx) => {
       return await tx.repository.user.insert({
         email: command.email,
@@ -51,8 +41,37 @@ export class UserService {
       });
     }
 
-    const session = this.sessionService.createSession(userId);
+    const session = await this.auth.createSession(userId);
+    const { password: _, ...user } = userResult.value;
 
-    return ok({ session, user: userResult.value });
+    return ok({ session, user });
+  }
+
+  async loginWithPassword(command: Readonly<CreateUserSchema>) {
+    const userResult = await this.uow.transaction((tx) =>
+      tx.repository.user.findByEmail(command.email),
+    );
+
+    if (userResult.isErr()) {
+      return err(IncorrectEmailOrPassword);
+    }
+
+    if (userResult.value.password === null) {
+      return err(IncorrectEmailOrPassword);
+    }
+    const { password: hashedPassword, ...user } = userResult.value;
+
+    const isValid = await this.auth.validatePassword({
+      hashedPassword,
+      unsafePassword: command.unsafePassword,
+    });
+
+    if (!isValid) {
+      return err(IncorrectEmailOrPassword);
+    }
+
+    const session = await this.auth.createSession(user.id);
+
+    return ok({ session, user });
   }
 }

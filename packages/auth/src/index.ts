@@ -1,6 +1,6 @@
 import type { Session as LuciaSession, SessionCookieOptions } from "lucia";
 import { DrizzlePostgreSQLAdapter } from "@lucia-auth/adapter-drizzle";
-import { Lucia } from "lucia";
+import { generateId, Lucia } from "lucia";
 
 import type { DrizzleDB } from "@ena/db";
 import { schema } from "@ena/db";
@@ -66,6 +66,8 @@ export function createRequestValidator(cookieStore: CookieStore) {
 export type EnaLucia = ReturnType<typeof createLucia>;
 export type Session = LuciaSession;
 export type * from "./types";
+export { Argon2id } from "oslo/password";
+export { generateId as luciaGenerateId };
 
 declare module "lucia" {
   interface Register {
