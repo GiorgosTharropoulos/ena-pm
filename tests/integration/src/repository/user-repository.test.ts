@@ -30,12 +30,7 @@ describe("UserRepository", () => {
 
     expect(retrieved).toBeDefined();
     expect(retrieved).toEqual(userToInsert);
-    expect(result).toEqual(
-      ok({
-        id: userToInsert.id,
-        email: userToInsert.email,
-      }),
-    );
+    expect(result).toEqual(ok(userToInsert));
   });
 
   it("should find a user by email", async () => {

@@ -1,3 +1,4 @@
+import { faker } from "@faker-js/faker";
 import { err } from "neverthrow";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -77,6 +78,7 @@ describe("when inviting a user", () => {
     const user = {
       email: "from@example.com",
       id: "user-id",
+      password: faker.internet.password(),
     };
     const uow = new FakeUnitOfWork({
       team: new FakeTeamRepository([team]),
@@ -118,6 +120,7 @@ describe("when inviting a user", () => {
     const user = {
       email: "from@example.com",
       id: "user-id",
+      password: faker.internet.password(),
     };
     const fakeEmailRepository = new FakeEmailRepository();
     const uow = new FakeUnitOfWork({
@@ -163,6 +166,7 @@ describe("when inviting a user", () => {
     const user = {
       email: "from@example.com",
       id: "user-ref",
+      password: faker.internet.password(),
     };
     const fakeEmailRepository = new FakeEmailRepository();
     const uow = new FakeUnitOfWork({

@@ -12,7 +12,6 @@ import type {
   TeamForSelect,
   TeamForUpdate,
   UserForInsert,
-  UserForSelect,
 } from "@ena/validators";
 
 import type { Clock } from "../../utils/time-provider";
